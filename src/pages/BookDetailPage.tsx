@@ -20,6 +20,7 @@ import {
   isDefaultTag,
   getBookmarkGroups,
   setBookmarkGroup,
+  matchesTagWithAlias,
 } from '../data/mockData'
 import type { AdvancedSearchConditions, BookmarkGroup } from '../types'
 import { useTagAlias } from '../context/TagAliasContext'
@@ -100,7 +101,7 @@ export default function BookDetailPage() {
           fn.annotation.toLowerCase().includes(normalized) ||
           String(fn.number).includes(normalized) ||
           String(fn.page).includes(normalized) ||
-          fn.tags.some((t) => t.toLowerCase().includes(normalized)),
+          fn.tags.some((t) => matchesTagWithAlias(t, normalized)),
       )
     }
 

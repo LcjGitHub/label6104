@@ -19,6 +19,7 @@ import {
   updateBookmarkGroup,
   deleteBookmarkGroup,
   getBookmarkCountByGroup,
+  matchesTagWithAlias,
 } from '../data/mockData'
 
 type SortOrder = 'newest' | 'oldest' | 'page'
@@ -102,7 +103,7 @@ export default function BookmarksPage() {
           String(footnote.number).includes(normalized) ||
           String(footnote.page).includes(normalized) ||
           book.title.toLowerCase().includes(normalized) ||
-          footnote.tags.some((t) => t.toLowerCase().includes(normalized)),
+          footnote.tags.some((t) => matchesTagWithAlias(t, normalized)),
       )
     }
 

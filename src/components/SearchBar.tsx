@@ -1,5 +1,6 @@
 import type { AdvancedSearchConditions } from '../types'
 import { DEFAULT_CONDITIONS } from './AdvancedSearchModal'
+import { useTagAlias } from '../context/TagAliasContext'
 
 interface SearchBarProps {
   value: string
@@ -30,6 +31,7 @@ export default function SearchBar({
   advancedConditions = DEFAULT_CONDITIONS,
 }: SearchBarProps) {
   const activeCount = countActiveConditions(advancedConditions)
+  const { getDisplayName } = useTagAlias()
 
   return (
     <div className="search-bar">
@@ -87,7 +89,7 @@ export default function SearchBar({
           )}
           {advancedConditions.tags.length > 0 && (
             <span className="search-bar__condition-tag">
-              标签：{advancedConditions.tags.map((t) => `#${t}`).join('、')}
+              标签：{advancedConditions.tags.map((t) => `#${getDisplayName(t)}`).join('、')}
               <span className="search-bar__condition-mode">
                 {advancedConditions.tagMatchMode === 'all' ? '（同时满足）' : '（满足任一）'}
               </span>

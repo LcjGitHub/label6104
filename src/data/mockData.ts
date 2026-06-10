@@ -997,3 +997,32 @@ export function getAllDefaultTags(): string[] {
   }
   return Array.from(tagSet).sort()
 }
+
+export function getOriginalTagByAlias(alias: string): string | undefined {
+  const aliases = readTagAliases()
+  const lowerAlias = alias.trim().toLowerCase()
+  const found = aliases.find(
+    (a) => a.alias.trim().toLowerCase() === lowerAlias,
+  )
+  return found?.originalTag
+}
+
+export function resolveTagToOriginal(tagOrAlias: string): string {
+  const trimmed = tagOrAlias.trim()
+  if (!trimmed) return ''
+  const allDefaultTags = getAllDefaultTags()
+  const lowerTrimmed = trimmed.toLowerCase()
+  if (allDefaultTags.some((t) => t.toLowerCase() === lowerTrimmed)) {
+    return allDefaultTags.find((t) => t.toLowerCase() === lowerTrimmed)!
+  }
+  const original = getOriginalTagByAlias(trimmed)
+  return original ?? trimmed
+}
+
+export function matchesTagWithAlias(tag: string, searchLower: string): boolean {
+  if (!searchLower) return false
+  if (tag.toLowerCase().includes(searchLower)) return true
+  const aliasMap = getTagAliasMap()
+  const alias = aliasMap[tag]
+  return alias !== undefined && alias.toLowerCase().includes(searchLower)
+}

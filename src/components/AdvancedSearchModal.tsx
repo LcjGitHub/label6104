@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { AdvancedSearchConditions, SearchPreset } from '../types'
 import { useTagAlias } from '../context/TagAliasContext'
+import { resolveTagToOriginal } from '../data/mockData'
 
 const PRESETS_STORAGE_KEY = 'footnote-archive-search-presets'
 
@@ -132,9 +133,9 @@ export default function AdvancedSearchModal({
 
   const addTag = useCallback(
     (tag: string) => {
-      const trimmed = tag.trim()
-      if (!trimmed || local.tags.includes(trimmed)) return
-      updateLocal('tags', [...local.tags, trimmed])
+      const resolved = resolveTagToOriginal(tag)
+      if (!resolved || local.tags.includes(resolved)) return
+      updateLocal('tags', [...local.tags, resolved])
       setTagInput('')
     },
     [local.tags, updateLocal],
