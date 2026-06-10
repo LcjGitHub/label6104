@@ -263,7 +263,12 @@ export default function BookDetailPage() {
             </select>
           </label>
           {book && (
-            <ExportButton book={book} footnotes={filteredFootnotes} />
+            <ExportButton
+              book={book}
+              filteredFootnotes={filteredFootnotes}
+              allFootnotes={allFootnotes}
+              isFilterActive={!!query.trim() || selectedTags.size > 0}
+            />
           )}
         </div>
       </div>

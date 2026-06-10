@@ -752,24 +752,24 @@ export function getOverallStats(): {
 
 export function formatAnnotationsAsJSON(book: Book, footnotes: Footnote[]): string {
   const data = {
-    book: {
-      id: book.id,
-      title: book.title,
-      author: book.author,
-      publisher: book.publisher,
-      year: book.year,
-      noteType: book.noteType,
-      description: book.description,
+    书籍信息: {
+      编号: book.id,
+      书名: book.title,
+      作者: book.author,
+      出版社: book.publisher,
+      出版年份: book.year,
+      注释类型: book.noteType === 'footnote' ? '脚注本' : '尾注本',
+      简介: book.description,
     },
-    exportedAt: new Date().toISOString(),
-    annotationCount: footnotes.length,
-    annotations: footnotes.map((fn) => ({
-      id: fn.id,
-      number: fn.number,
-      page: fn.page,
-      originalText: fn.originalText,
-      annotation: fn.annotation,
-      tags: fn.tags,
+    导出时间: new Date().toLocaleString('zh-CN'),
+    注释数量: footnotes.length,
+    注释列表: footnotes.map((fn) => ({
+      编号: fn.id,
+      序号: fn.number,
+      页码: fn.page,
+      原文: fn.originalText,
+      注解: fn.annotation,
+      标签: fn.tags,
     })),
   }
   return JSON.stringify(data, null, 2)
@@ -795,7 +795,7 @@ export function formatAnnotationsAsText(book: Book, footnotes: Footnote[]): stri
 
   footnotes.forEach((fn, index) => {
     lines.push(`【注释 #${fn.number}】`)
-    lines.push(`页码：p. ${fn.page}`)
+    lines.push(`页码：${fn.page}`)
     lines.push(`标签：${fn.tags.length > 0 ? fn.tags.map((t) => `#${t}`).join('、') : '无'}`)
     lines.push('')
     lines.push('原文：')
