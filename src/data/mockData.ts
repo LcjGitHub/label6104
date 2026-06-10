@@ -515,7 +515,7 @@ const DEFAULT_GROUPS: BookmarkGroup[] = [
   { id: 'group-reference', name: '引用参考', color: '#8b6914', createdAt: 0, isDefault: true },
 ]
 
-function migrateBookmarks(bookmarks: any[]): Bookmark[] {
+function migrateBookmarks(bookmarks: Array<Record<string, unknown>>): Bookmark[] {
   return bookmarks.map((bm) => ({
     ...bm,
     groupId: bm.groupId ?? null,
@@ -931,7 +931,7 @@ function escapeCsvField(value: string): string {
   return value
 }
 
-export function formatAnnotationsAsCSV(book: Book, footnotes: Footnote[]): string {
+export function formatAnnotationsAsCSV(_book: Book, footnotes: Footnote[]): string {
   const headers = ['注释编号', '页码', '原文', '注解', '标签']
   const rows = footnotes.map((fn) => [
     String(fn.number),
