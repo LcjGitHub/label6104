@@ -2,12 +2,14 @@ import type { Footnote } from '../types'
 
 interface FootnoteListProps {
   footnotes: Footnote[]
-  noteType: 'footnote' | 'endnote'
+  noteType?: 'footnote' | 'endnote'
   bookmarkedIds?: Set<string>
   onToggleBookmark?: (footnoteId: string) => void
   showBookLink?: boolean
   getBookTitle?: (bookId: string) => string
+  getBookNoteType?: (bookId: string) => 'footnote' | 'endnote' | undefined
   onBookClick?: (bookId: string) => void
+  emptyText?: string
 }
 
 export default function FootnoteList({
@@ -17,25 +19,33 @@ export default function FootnoteList({
   onToggleBookmark,
   showBookLink,
   getBookTitle,
+  getBookNoteType,
   onBookClick,
+  emptyText,
 }: FootnoteListProps) {
   if (footnotes.length === 0) {
-    return (
-      <p className="empty-state">
-        暂无匹配的{noteType === 'footnote' ? '脚注' : '尾注'}条目。
-      </p>
-    )
+    const defaultText =
+      noteType !== undefined
+        ? `暂无匹配的${noteType === 'footnote' ? '脚注' : '尾注'}条目。`
+        : '暂无匹配的收藏条目。'
+    return <p className="empty-state">{emptyText ?? defaultText}</p>
   }
 
   return (
     <ol className="footnote-list">
       {footnotes.map((fn) => {
         const isBookmarked = bookmarkedIds?.has(fn.id) ?? false
+        const bookNoteType = getBookNoteType ? getBookNoteType(fn.bookId) : undefined
         return (
           <li key={fn.id} className="footnote-item">
             <div className="footnote-item__meta">
               <span className="footnote-item__number">#{fn.number}</span>
               <span className="footnote-item__page">p. {fn.page}</span>
+              {bookNoteType && (
+                <span className="footnote-item__type">
+                  {bookNoteType === 'footnote' ? '脚注' : '尾注'}
+                </span>
+              )}
               {showBookLink && getBookTitle && onBookClick && (
                 <button
                   type="button"

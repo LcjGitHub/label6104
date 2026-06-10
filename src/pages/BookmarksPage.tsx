@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import FootnoteList from '../components/FootnoteList'
 import SearchBar from '../components/SearchBar'
@@ -11,23 +11,23 @@ import {
 
 type SortOrder = 'newest' | 'oldest' | 'page'
 
+function readBookmarkedIds(): Set<string> {
+  return new Set(getBookmarks().map((b) => b.footnoteId))
+}
+
 export default function BookmarksPage() {
   const navigate = useNavigate()
   const [query, setQuery] = useState('')
   const [sortOrder, setSortOrder] = useState<SortOrder>('newest')
-  const [bookmarkedIds, setBookmarkedIds] = useState<Set<string>>(new Set())
+  const [bookmarkedIds, setBookmarkedIds] = useState<Set<string>>(() => readBookmarkedIds())
   const [refreshKey, setRefreshKey] = useState(0)
 
-  const loadBookmarks = useCallback(() => {
-    const bookmarks = getBookmarks()
-    setBookmarkedIds(new Set(bookmarks.map((b) => b.footnoteId)))
-  }, [])
-
-  useEffect(() => {
-    loadBookmarks()
-  }, [loadBookmarks, refreshKey])
-
   const bookmarkedItems = useMemo(() => getBookmarkedFootnotes(), [refreshKey])
+
+  const refreshBookmarks = useCallback(() => {
+    setBookmarkedIds(readBookmarkedIds())
+    setRefreshKey((k) => k + 1)
+  }, [])
 
   const filteredItems = useMemo(() => {
     const normalized = query.trim().toLowerCase()
@@ -63,14 +63,19 @@ export default function BookmarksPage() {
       const item = bookmarkedItems.find((x) => x.footnote.id === footnoteId)
       if (!item) return
       toggleBookmark(footnoteId, item.book.id)
-      setRefreshKey((k) => k + 1)
+      refreshBookmarks()
     },
-    [bookmarkedItems],
+    [bookmarkedItems, refreshBookmarks],
   )
 
   const getBookTitle = useCallback((bookId: string) => {
     const book = getBookById(bookId)
     return book?.title ?? '未知书籍'
+  }, [])
+
+  const getBookNoteType = useCallback((bookId: string) => {
+    const book = getBookById(bookId)
+    return book?.noteType
   }, [])
 
   const handleBookClick = useCallback(
@@ -134,11 +139,11 @@ export default function BookmarksPage() {
 
           <FootnoteList
             footnotes={filteredItems.map((item) => item.footnote)}
-            noteType="footnote"
             bookmarkedIds={bookmarkedIds}
             onToggleBookmark={handleToggleBookmark}
             showBookLink
             getBookTitle={getBookTitle}
+            getBookNoteType={getBookNoteType}
             onBookClick={handleBookClick}
           />
         </>

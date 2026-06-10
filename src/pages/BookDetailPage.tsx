@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import FootnoteList from '../components/FootnoteList'
 import SearchBar from '../components/SearchBar'
@@ -11,6 +11,10 @@ import {
 
 type SortOrder = 'asc' | 'desc'
 
+function readBookmarkedIds(): Set<string> {
+  return new Set(getBookmarks().map((b) => b.footnoteId))
+}
+
 export default function BookDetailPage() {
   const { bookId } = useParams<{ bookId: string }>()
   const book = bookId ? getBookById(bookId) : undefined
@@ -18,24 +22,19 @@ export default function BookDetailPage() {
 
   const [query, setQuery] = useState('')
   const [sortOrder, setSortOrder] = useState<SortOrder>('asc')
-  const [bookmarkedIds, setBookmarkedIds] = useState<Set<string>>(new Set())
+  const [bookmarkedIds, setBookmarkedIds] = useState<Set<string>>(() => readBookmarkedIds())
 
-  const loadBookmarks = useCallback(() => {
-    const bookmarks = getBookmarks()
-    setBookmarkedIds(new Set(bookmarks.map((b) => b.footnoteId)))
+  const refreshBookmarks = useCallback(() => {
+    setBookmarkedIds(readBookmarkedIds())
   }, [])
-
-  useEffect(() => {
-    loadBookmarks()
-  }, [loadBookmarks])
 
   const handleToggleBookmark = useCallback(
     (footnoteId: string) => {
       if (!bookId) return
       toggleBookmark(footnoteId, bookId)
-      loadBookmarks()
+      refreshBookmarks()
     },
-    [bookId, loadBookmarks],
+    [bookId, refreshBookmarks],
   )
 
   const filteredFootnotes = useMemo(() => {

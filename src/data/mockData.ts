@@ -482,3 +482,17 @@ export function getBookmarkedFootnotes(): { footnote: Footnote; book: Book; book
 export function getFootnoteById(id: string): Footnote | undefined {
   return footnotes.find((f) => f.id === id)
 }
+
+export function updateBookmark(
+  id: string,
+  updates: Partial<Pick<Bookmark, 'footnoteId' | 'bookId'>>,
+): Bookmark | undefined {
+  const bookmarks = readBookmarks()
+  const idx = bookmarks.findIndex((b) => b.id === id)
+  if (idx === -1) return undefined
+
+  const updated: Bookmark = { ...bookmarks[idx], ...updates }
+  bookmarks[idx] = updated
+  writeBookmarks(bookmarks)
+  return updated
+}
