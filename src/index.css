@@ -384,6 +384,79 @@ body {
 
 .toolbar__actions {
   margin-left: auto;
+  display: flex;
+  gap: 1rem;
+  align-items: flex-end;
+  flex-wrap: wrap;
+}
+
+.export-control {
+  display: flex;
+  flex-direction: column;
+}
+
+.export-control__row {
+  display: flex;
+  gap: 0.5rem;
+  align-items: stretch;
+}
+
+.export-control__select {
+  font-family: var(--font-serif);
+  font-size: 0.85rem;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--color-border);
+  background: var(--color-paper-light);
+  color: var(--color-ink);
+  cursor: pointer;
+  min-width: 140px;
+}
+
+.export-btn {
+  font-family: var(--font-serif);
+  font-size: 0.85rem;
+  padding: 0.5rem 1rem;
+  border: 1px solid var(--color-accent-soft);
+  background: var(--color-accent-bg);
+  color: var(--color-accent);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  letter-spacing: 0.05em;
+}
+
+.export-btn:hover:not(:disabled) {
+  background: var(--color-accent-bg-strong);
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+}
+
+.export-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+@media (max-width: 480px) {
+  .toolbar__actions {
+    margin-left: 0;
+    width: 100%;
+  }
+
+  .sort-control select {
+    width: 100%;
+  }
+
+  .export-control__select {
+    width: 100%;
+  }
+
+  .export-control__row {
+    flex-wrap: wrap;
+  }
+
+  .export-btn {
+    flex: 1;
+    min-width: 80px;
+  }
 }
 
 .sort-control {

@@ -5,6 +5,7 @@ import ProgressBar from '../components/ProgressBar'
 import SearchBar from '../components/SearchBar'
 import TagFilter from '../components/TagFilter'
 import TagCloud from '../components/TagCloud'
+import ExportButton from '../components/ExportButton'
 import {
   getBookById,
   getFootnotesByBookId,
@@ -261,6 +262,9 @@ export default function BookDetailPage() {
               <option value="desc">降序（大 → 小）</option>
             </select>
           </label>
+          {book && (
+            <ExportButton book={book} footnotes={filteredFootnotes} />
+          )}
         </div>
       </div>
 

@@ -749,3 +749,83 @@ export function getOverallStats(): {
     overallPercentage,
   }
 }
+
+export function formatAnnotationsAsJSON(book: Book, footnotes: Footnote[]): string {
+  const data = {
+    book: {
+      id: book.id,
+      title: book.title,
+      author: book.author,
+      publisher: book.publisher,
+      year: book.year,
+      noteType: book.noteType,
+      description: book.description,
+    },
+    exportedAt: new Date().toISOString(),
+    annotationCount: footnotes.length,
+    annotations: footnotes.map((fn) => ({
+      id: fn.id,
+      number: fn.number,
+      page: fn.page,
+      originalText: fn.originalText,
+      annotation: fn.annotation,
+      tags: fn.tags,
+    })),
+  }
+  return JSON.stringify(data, null, 2)
+}
+
+export function formatAnnotationsAsText(book: Book, footnotes: Footnote[]): string {
+  const lines: string[] = []
+
+  lines.push('='.repeat(60))
+  lines.push(`《${book.title}》`)
+  lines.push('='.repeat(60))
+  lines.push(`作者：${book.author}`)
+  lines.push(`出版社：${book.publisher}`)
+  lines.push(`出版年份：${book.year}`)
+  lines.push(`注释类型：${book.noteType === 'footnote' ? '脚注本' : '尾注本'}`)
+  lines.push(`导出时间：${new Date().toLocaleString('zh-CN')}`)
+  lines.push(`注释数量：${footnotes.length} 条`)
+  lines.push('')
+  lines.push('-'.repeat(60))
+  lines.push(book.description)
+  lines.push('-'.repeat(60))
+  lines.push('')
+
+  footnotes.forEach((fn, index) => {
+    lines.push(`【注释 #${fn.number}】`)
+    lines.push(`页码：p. ${fn.page}`)
+    lines.push(`标签：${fn.tags.length > 0 ? fn.tags.map((t) => `#${t}`).join('、') : '无'}`)
+    lines.push('')
+    lines.push('原文：')
+    lines.push(`  ${fn.originalText}`)
+    lines.push('')
+    lines.push('注解：')
+    lines.push(`  ${fn.annotation}`)
+    if (index < footnotes.length - 1) {
+      lines.push('')
+      lines.push('─'.repeat(60))
+      lines.push('')
+    }
+  })
+
+  lines.push('')
+  lines.push('='.repeat(60))
+  lines.push('导出完毕')
+  lines.push('='.repeat(60))
+
+  return lines.join('\n')
+}
+
+export function triggerDownload(content: string, filename: string, mimeType: string): void {
+  const blob = new Blob([content], { type: mimeType })
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = url
+  link.download = filename
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link)
+  URL.revokeObjectURL(url)
+}
