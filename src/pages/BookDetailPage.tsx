@@ -3,6 +3,8 @@ import { Link, useParams } from 'react-router-dom'
 import FootnoteList from '../components/FootnoteList'
 import ProgressBar from '../components/ProgressBar'
 import SearchBar from '../components/SearchBar'
+import TagFilter from '../components/TagFilter'
+import TagCloud from '../components/TagCloud'
 import {
   getBookById,
   getFootnotesByBookId,
@@ -26,6 +28,7 @@ export default function BookDetailPage() {
 
   const [query, setQuery] = useState('')
   const [sortOrder, setSortOrder] = useState<SortOrder>('asc')
+  const [selectedTags, setSelectedTags] = useState<Set<string>>(new Set())
   const [bookmarkedIds, setBookmarkedIds] = useState<Set<string>>(() => readBookmarkedIds())
   const [readFootnoteIds, setReadFootnoteIds] = useState<Set<string>>(() =>
     bookId ? getReadFootnoteIds(bookId) : new Set(),
@@ -43,8 +46,19 @@ export default function BookDetailPage() {
     setProgressPercentage(calculateProgressPercentage(bookId))
     setQuery('')
     setSortOrder('asc')
+    setSelectedTags(new Set())
     processedRef.current = new Set()
   }, [bookId])
+
+  const allTags = useMemo(() => {
+    const tagSet = new Set<string>()
+    for (const fn of allFootnotes) {
+      for (const tag of fn.tags) {
+        tagSet.add(tag)
+      }
+    }
+    return Array.from(tagSet).sort()
+  }, [allFootnotes])
 
   const filteredFootnotes = useMemo(() => {
     const normalized = query.trim().toLowerCase()
@@ -56,14 +70,21 @@ export default function BookDetailPage() {
           fn.originalText.toLowerCase().includes(normalized) ||
           fn.annotation.toLowerCase().includes(normalized) ||
           String(fn.number).includes(normalized) ||
-          String(fn.page).includes(normalized),
+          String(fn.page).includes(normalized) ||
+          fn.tags.some((t) => t.toLowerCase().includes(normalized)),
+      )
+    }
+
+    if (selectedTags.size > 0) {
+      result = result.filter((fn) =>
+        Array.from(selectedTags).every((tag) => fn.tags.includes(tag)),
       )
     }
 
     return [...result].sort((a, b) =>
       sortOrder === 'asc' ? a.page - b.page : b.page - a.page,
     )
-  }, [allFootnotes, query, sortOrder])
+  }, [allFootnotes, query, sortOrder, selectedTags])
 
   const refreshBookmarks = useCallback(() => {
     setBookmarkedIds(readBookmarkedIds())
@@ -83,6 +104,26 @@ export default function BookDetailPage() {
     },
     [bookId, refreshBookmarks],
   )
+
+  const handleToggleTag = useCallback((tag: string) => {
+    setSelectedTags((prev) => {
+      const next = new Set(prev)
+      if (next.has(tag)) {
+        next.delete(tag)
+      } else {
+        next.add(tag)
+      }
+      return next
+    })
+  }, [])
+
+  const handleClearTags = useCallback(() => {
+    setSelectedTags(new Set())
+  }, [])
+
+  const handleTagClick = useCallback((tag: string) => {
+    handleToggleTag(tag)
+  }, [handleToggleTag])
 
   const handleMarkAsRead = useCallback(
     (footnoteId: string) => {
@@ -165,6 +206,12 @@ export default function BookDetailPage() {
         </div>
       </header>
 
+      <TagCloud
+        footnotes={allFootnotes}
+        onTagClick={handleTagClick}
+        selectedTags={selectedTags}
+      />
+
       <div className="toolbar">
         <SearchBar value={query} onChange={setQuery} />
         <div className="toolbar__actions">
@@ -182,10 +229,21 @@ export default function BookDetailPage() {
         </div>
       </div>
 
+      <TagFilter
+        tags={allTags}
+        selectedTags={selectedTags}
+        onToggleTag={handleToggleTag}
+        onClearAll={handleClearTags}
+      />
+
       <p className="result-summary" aria-live="polite">
-        {query.trim()
-          ? `找到 ${filteredFootnotes.length} 条匹配「${query.trim()}」`
+        {query.trim() || selectedTags.size > 0
+          ? `找到 ${filteredFootnotes.length} 条匹配`
           : `显示全部 ${filteredFootnotes.length} 条`}
+        {query.trim() ? ` · 关键字「${query.trim()}」` : ''}
+        {selectedTags.size > 0
+          ? ` · 标签「${Array.from(selectedTags).join('、')}」`
+          : ''}
         {sortOrder === 'asc' ? ' · 按页码升序' : ' · 按页码降序'}
       </p>
 
@@ -195,6 +253,7 @@ export default function BookDetailPage() {
         bookmarkedIds={bookmarkedIds}
         readFootnoteIds={readFootnoteIds}
         onToggleBookmark={handleToggleBookmark}
+        onTagClick={handleTagClick}
       />
     </div>
   )

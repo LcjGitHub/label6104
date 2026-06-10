@@ -16,6 +16,7 @@ export interface Footnote {
   page: number
   originalText: string
   annotation: string
+  tags: string[]
 }
 
 export interface Bookmark {

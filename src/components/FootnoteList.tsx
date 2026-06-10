@@ -6,6 +6,7 @@ interface FootnoteListProps {
   bookmarkedIds?: Set<string>
   readFootnoteIds?: Set<string>
   onToggleBookmark?: (footnoteId: string) => void
+  onTagClick?: (tag: string) => void
   showBookLink?: boolean
   getBookTitle?: (bookId: string) => string
   getBookNoteType?: (bookId: string) => 'footnote' | 'endnote' | undefined
@@ -19,6 +20,7 @@ export default function FootnoteList({
   bookmarkedIds,
   readFootnoteIds,
   onToggleBookmark,
+  onTagClick,
   showBookLink,
   getBookTitle,
   getBookNoteType,
@@ -81,6 +83,20 @@ export default function FootnoteList({
               {fn.originalText}
             </blockquote>
             <p className="footnote-item__annotation">{fn.annotation}</p>
+            {fn.tags && fn.tags.length > 0 && (
+              <div className="footnote-item__tags">
+                {fn.tags.map((tag) => (
+                  <button
+                    key={tag}
+                    type="button"
+                    className="footnote-tag"
+                    onClick={() => onTagClick?.(tag)}
+                  >
+                    #{tag}
+                  </button>
+                ))}
+              </div>
+            )}
           </li>
         )
       })}
