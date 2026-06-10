@@ -11,6 +11,25 @@
       href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&family=Noto+Serif+SC:wght@400;600&display=swap"
       rel="stylesheet"
     />
+    <script>
+      (function () {
+        try {
+          var key = 'footnote-archive-theme';
+          var stored = localStorage.getItem(key);
+          var theme = stored === 'light' || stored === 'dark'
+            ? stored
+            : (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+          var root = document.documentElement;
+          if (theme === 'dark') {
+            root.classList.add('theme-dark');
+            root.classList.remove('theme-light');
+          } else {
+            root.classList.add('theme-light');
+            root.classList.remove('theme-dark');
+          }
+        } catch (e) {}
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

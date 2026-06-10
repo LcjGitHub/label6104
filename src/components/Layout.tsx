@@ -42,8 +42,8 @@ export default function Layout() {
               我的收藏
             </NavLink>
             <button className="theme-toggle" onClick={toggleTheme} aria-label="切换主题">
-              <span className="theme-toggle__icon">{theme === 'light' ? '☾' : '☀'}</span>
-              <span>{theme === 'light' ? '夜间' : '日间'}</span>
+              <span className="theme-toggle__icon">{theme === 'light' ? '☀' : '☾'}</span>
+              <span>{theme === 'light' ? '日间模式' : '夜间模式'}</span>
             </button>
           </nav>
         </div>
