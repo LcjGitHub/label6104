@@ -1,5 +1,6 @@
 import { useMemo } from 'react'
 import type { Footnote } from '../types'
+import { useTagAlias } from '../context/TagAliasContext'
 
 interface TagCloudProps {
   footnotes: Footnote[]
@@ -12,6 +13,7 @@ export default function TagCloud({
   onTagClick,
   selectedTags,
 }: TagCloudProps) {
+  const { getDisplayName } = useTagAlias()
   const tagFrequencies = useMemo(() => {
     const freq: Record<string, number> = {}
     for (const fn of footnotes) {
@@ -64,9 +66,9 @@ export default function TagCloud({
                 isSelected ? 'tag-cloud__tag--selected' : ''
               }`}
               onClick={() => onTagClick?.(tag)}
-              title={`${tag}（${freq} 条）`}
+              title={`${getDisplayName(tag)}（${freq} 条）`}
             >
-              {tag}
+              {getDisplayName(tag)}
               <span className="tag-cloud__freq">{freq}</span>
             </button>
           )

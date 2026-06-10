@@ -1,3 +1,5 @@
+import { useTagAlias } from '../context/TagAliasContext'
+
 interface TagFilterProps {
   tags: string[]
   selectedTags: Set<string>
@@ -11,6 +13,8 @@ export default function TagFilter({
   onToggleTag,
   onClearAll,
 }: TagFilterProps) {
+  const { getDisplayName } = useTagAlias()
+
   if (tags.length === 0) {
     return null
   }
@@ -29,7 +33,7 @@ export default function TagFilter({
               onClick={() => onToggleTag(tag)}
               aria-pressed={isSelected}
             >
-              {tag}
+              {getDisplayName(tag)}
             </button>
           )
         })}

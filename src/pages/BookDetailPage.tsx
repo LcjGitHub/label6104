@@ -22,6 +22,7 @@ import {
   setBookmarkGroup,
 } from '../data/mockData'
 import type { AdvancedSearchConditions, BookmarkGroup } from '../types'
+import { useTagAlias } from '../context/TagAliasContext'
 
 type SortOrder = 'asc' | 'desc'
 
@@ -52,6 +53,7 @@ export default function BookDetailPage() {
   const [bookmarkRefreshKey, setBookmarkRefreshKey] = useState(0)
   const [advSearchOpen, setAdvSearchOpen] = useState(false)
   const [advConditions, setAdvConditions] = useState<AdvancedSearchConditions>(DEFAULT_CONDITIONS)
+  const { getDisplayName } = useTagAlias()
 
   const observerRef = useRef<IntersectionObserver | null>(null)
   const processedRef = useRef<Set<string>>(new Set())
@@ -373,12 +375,12 @@ export default function BookDetailPage() {
           : `显示全部 ${filteredFootnotes.length} 条`}
         {query.trim() ? ` · 关键字「${query.trim()}」` : ''}
         {selectedTags.size > 0
-          ? ` · 标签「${Array.from(selectedTags).join('、')}」（满足任一）`
+          ? ` · 标签「${Array.from(selectedTags).map(getDisplayName).join('、')}」（满足任一）`
           : ''}
         {advConditions.pageRange.min !== null ? ` · 页码 ≥ ${advConditions.pageRange.min}` : ''}
         {advConditions.pageRange.max !== null ? ` · 页码 ≤ ${advConditions.pageRange.max}` : ''}
         {advConditions.tags.length > 0
-          ? ` · 高级标签「${advConditions.tags.join('、')}」${advConditions.tagMatchMode === 'all' ? '（同时满足）' : '（满足任一）'}`
+          ? ` · 高级标签「${advConditions.tags.map(getDisplayName).join('、')}」${advConditions.tagMatchMode === 'all' ? '（同时满足）' : '（满足任一）'}`
           : ''}
         {advConditions.readStatus === 'read' ? ' · 仅已读' : ''}
         {advConditions.readStatus === 'unread' ? ' · 仅未读' : ''}

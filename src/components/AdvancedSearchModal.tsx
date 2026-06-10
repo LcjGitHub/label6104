@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { AdvancedSearchConditions, SearchPreset } from '../types'
+import { useTagAlias } from '../context/TagAliasContext'
 
 const PRESETS_STORAGE_KEY = 'footnote-archive-search-presets'
 
@@ -48,6 +49,7 @@ export default function AdvancedSearchModal({
   const [tagInput, setTagInput] = useState('')
   const overlayRef = useRef<HTMLDivElement>(null)
   const panelRef = useRef<HTMLDivElement>(null)
+  const { getDisplayName } = useTagAlias()
 
   useEffect(() => {
     if (open) {
@@ -292,7 +294,7 @@ export default function AdvancedSearchModal({
               <div className="adv-search-selected-tags">
                 {local.tags.map((tag) => (
                   <span key={tag} className="adv-search-tag-chip">
-                    #{tag}
+                    #{getDisplayName(tag)}
                     <button
                       type="button"
                       className="adv-search-tag-remove"
@@ -318,7 +320,7 @@ export default function AdvancedSearchModal({
                         className="adv-search-tag-option"
                         onClick={() => addTag(tag)}
                       >
-                        {tag}
+                        {getDisplayName(tag)}
                       </button>
                     ))}
                 </div>

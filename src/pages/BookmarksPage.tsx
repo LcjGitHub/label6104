@@ -4,6 +4,7 @@ import FootnoteList from '../components/FootnoteList'
 import SearchBar from '../components/SearchBar'
 import TagFilter from '../components/TagFilter'
 import type { BookmarkGroup } from '../types'
+import { useTagAlias } from '../context/TagAliasContext'
 import {
   getBookById,
   getBookmarkedFootnotes,
@@ -44,6 +45,7 @@ export default function BookmarksPage() {
   const [editingGroupId, setEditingGroupId] = useState<string | null>(null)
   const [editGroupName, setEditGroupName] = useState('')
   const [editGroupColor, setEditGroupColor] = useState('')
+  const { getDisplayName } = useTagAlias()
 
   const bookmarkedItems = useMemo(() => getBookmarkedFootnotes(), [refreshKey])
 
@@ -503,7 +505,7 @@ export default function BookmarksPage() {
               : ` · 显示 ${currentGroupCount} 条`}
             {query.trim() ? ` · 关键字「${query.trim()}」` : ''}
             {selectedTags.size > 0
-              ? ` · 标签「${Array.from(selectedTags).join('、')}」（满足任一）`
+              ? ` · 标签「${Array.from(selectedTags).map(getDisplayName).join('、')}」（满足任一）`
               : ''}
           </p>
 

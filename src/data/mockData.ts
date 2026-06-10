@@ -1,4 +1,4 @@
-import type { Book, Bookmark, BookmarkGroup, Footnote, ReadingProgress, BookProgressSummary } from '../types'
+import type { Book, Bookmark, BookmarkGroup, Footnote, ReadingProgress, BookProgressSummary, TagAlias } from '../types'
 
 export const books: Book[] = [
   {
@@ -933,4 +933,67 @@ export function triggerDownload(content: string, filename: string, mimeType: str
   link.click()
   document.body.removeChild(link)
   URL.revokeObjectURL(url)
+}
+
+const TAG_ALIASES_STORAGE_KEY = 'footnote-archive-tag-aliases'
+
+function readTagAliases(): TagAlias[] {
+  try {
+    const raw = localStorage.getItem(TAG_ALIASES_STORAGE_KEY)
+    if (!raw) return []
+    const parsed = JSON.parse(raw)
+    return Array.isArray(parsed) ? parsed : []
+  } catch {
+    return []
+  }
+}
+
+function writeTagAliases(aliases: TagAlias[]): void {
+  localStorage.setItem(TAG_ALIASES_STORAGE_KEY, JSON.stringify(aliases))
+}
+
+export function getTagAliases(): TagAlias[] {
+  return readTagAliases()
+}
+
+export function getTagAliasMap(): Record<string, string> {
+  const aliases = readTagAliases()
+  const map: Record<string, string> = {}
+  for (const a of aliases) {
+    map[a.originalTag] = a.alias
+  }
+  return map
+}
+
+export function getTagDisplayName(tag: string): string {
+  const map = getTagAliasMap()
+  return map[tag] ?? tag
+}
+
+export function setTagAlias(originalTag: string, alias: string): TagAlias {
+  const aliases = readTagAliases()
+  const existing = aliases.find((a) => a.originalTag === originalTag)
+  if (existing) {
+    existing.alias = alias
+  } else {
+    aliases.push({ originalTag, alias })
+  }
+  writeTagAliases(aliases)
+  return { originalTag, alias }
+}
+
+export function removeTagAlias(originalTag: string): void {
+  const aliases = readTagAliases()
+  const filtered = aliases.filter((a) => a.originalTag !== originalTag)
+  writeTagAliases(filtered)
+}
+
+export function getAllDefaultTags(): string[] {
+  const tagSet = new Set<string>()
+  for (const fn of footnotes) {
+    for (const tag of fn.tags) {
+      tagSet.add(tag)
+    }
+  }
+  return Array.from(tagSet).sort()
 }

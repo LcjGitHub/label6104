@@ -64,6 +64,11 @@ export interface SearchPreset {
   createdAt: number
 }
 
+export interface TagAlias {
+  originalTag: string
+  alias: string
+}
+
 export interface BookProgressSummary {
   bookId: string
   title: string

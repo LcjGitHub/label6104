@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import type { BookmarkGroup, Footnote } from '../types'
+import { useTagAlias } from '../context/TagAliasContext'
 
 interface FootnoteListProps {
   footnotes: Footnote[]
@@ -46,6 +47,7 @@ export default function FootnoteList({
   const [newTagText, setNewTagText] = useState('')
   const [activeGroupDropdown, setActiveGroupDropdown] = useState<string | null>(null)
   const groupDropdownRef = useRef<HTMLDivElement | null>(null)
+  const { getDisplayName } = useTagAlias()
 
   useEffect(() => {
     if (activeGroupDropdown === null) return
@@ -222,15 +224,15 @@ export default function FootnoteList({
                           className="footnote-tag"
                           onClick={() => onTagClick?.(tag)}
                         >
-                          #{tag}
+                          #{getDisplayName(tag)}
                         </button>
                         {removable && onRemoveTag && (
                           <button
                             type="button"
                             className="footnote-tag__remove"
                             onClick={() => onRemoveTag(fn.id, tag)}
-                            aria-label={`删除标签「${tag}」`}
-                            title={`删除标签「${tag}」`}
+                            aria-label={`删除标签「${getDisplayName(tag)}」`}
+                            title={`删除标签「${getDisplayName(tag)}」`}
                           >
                             ×
                           </button>
