@@ -99,3 +99,9 @@ export interface MilestoneMessage {
   content: string
   emoji: string
 }
+
+export interface CustomMilestoneMessage {
+  title?: string
+  content?: string
+  emoji?: string
+}

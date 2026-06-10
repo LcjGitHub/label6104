@@ -1029,6 +1029,7 @@ export function matchesTagWithAlias(tag: string, searchLower: string): boolean {
 }
 
 const MILESTONES_STORAGE_KEY = 'footnote-archive-milestones'
+const MILESTONE_CUSTOM_MESSAGES_STORAGE_KEY = 'footnote-archive-milestone-custom-messages'
 
 export const MILESTONE_LEVELS: MilestoneLevel[] = [25, 50, 75, 100]
 
@@ -1057,6 +1058,52 @@ export const DEFAULT_MILESTONE_MESSAGES: Record<MilestoneLevel, MilestoneMessage
     content: '恭喜你完成了全书阅读！知识就是力量！',
     emoji: '🎉',
   },
+}
+
+export interface CustomMilestoneMessage {
+  title?: string
+  content?: string
+  emoji?: string
+}
+
+function readCustomMilestoneMessages(): Partial<Record<MilestoneLevel, CustomMilestoneMessage>> {
+  try {
+    const raw = localStorage.getItem(MILESTONE_CUSTOM_MESSAGES_STORAGE_KEY)
+    if (!raw) return {}
+    const parsed = JSON.parse(raw)
+    return parsed && typeof parsed === 'object' ? parsed : {}
+  } catch {
+    return {}
+  }
+}
+
+function writeCustomMilestoneMessages(
+  messages: Partial<Record<MilestoneLevel, CustomMilestoneMessage>>,
+): void {
+  localStorage.setItem(MILESTONE_CUSTOM_MESSAGES_STORAGE_KEY, JSON.stringify(messages))
+}
+
+export function getCustomMilestoneMessages(): Partial<Record<MilestoneLevel, CustomMilestoneMessage>> {
+  return readCustomMilestoneMessages()
+}
+
+export function setCustomMilestoneMessage(
+  level: MilestoneLevel,
+  custom: CustomMilestoneMessage,
+): void {
+  const all = readCustomMilestoneMessages()
+  all[level] = { ...all[level], ...custom }
+  writeCustomMilestoneMessages(all)
+}
+
+export function resetCustomMilestoneMessage(level: MilestoneLevel): void {
+  const all = readCustomMilestoneMessages()
+  delete all[level]
+  writeCustomMilestoneMessages(all)
+}
+
+export function resetAllCustomMilestoneMessages(): void {
+  localStorage.removeItem(MILESTONE_CUSTOM_MESSAGES_STORAGE_KEY)
 }
 
 function readAllMilestones(): Record<string, BookMilestoneData> {
@@ -1151,14 +1198,37 @@ export function checkNewMilestones(
   return newlyAchieved
 }
 
+export function checkNewMilestonesByCount(
+  bookId: string,
+  readCount: number,
+  totalCount: number,
+): MilestoneLevel[] {
+  if (totalCount <= 0) return []
+  const achieved = getAchievedMilestoneLevels(bookId)
+  const newlyAchieved: MilestoneLevel[] = []
+
+  const ratio = readCount / totalCount
+
+  for (const level of MILESTONE_LEVELS) {
+    const threshold = level / 100
+    if (!achieved.has(level) && ratio >= threshold) {
+      newlyAchieved.push(level)
+    }
+  }
+
+  return newlyAchieved
+}
+
 export function getMilestoneMessage(
   level: MilestoneLevel,
   customMessages?: Partial<Record<MilestoneLevel, Partial<MilestoneMessage>>>,
 ): MilestoneMessage {
   const defaultMsg = DEFAULT_MILESTONE_MESSAGES[level]
-  const custom = customMessages?.[level]
+  const globalCustom = readCustomMilestoneMessages()[level]
+  const pageCustom = customMessages?.[level]
   return {
     ...defaultMsg,
-    ...custom,
+    ...globalCustom,
+    ...pageCustom,
   }
 }

@@ -1,7 +1,16 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useTagAlias } from '../context/TagAliasContext'
-import { getAllDefaultTags } from '../data/mockData'
+import {
+  getAllDefaultTags,
+  getCustomMilestoneMessages,
+  setCustomMilestoneMessage,
+  resetCustomMilestoneMessage,
+  resetAllCustomMilestoneMessages,
+  DEFAULT_MILESTONE_MESSAGES,
+  MILESTONE_LEVELS,
+} from '../data/mockData'
+import type { MilestoneLevel, CustomMilestoneMessage } from '../types'
 
 export default function SettingsPage() {
   const { aliasMap, setAlias, removeAlias } = useTagAlias()
@@ -11,6 +20,15 @@ export default function SettingsPage() {
   const [editValue, setEditValue] = useState('')
   const [addingTag, setAddingTag] = useState<string | null>(null)
   const [addValue, setAddValue] = useState('')
+
+  const [milestoneRefreshKey, setMilestoneRefreshKey] = useState(0)
+  const [editingMilestone, setEditingMilestone] = useState<MilestoneLevel | null>(null)
+  const [milestoneEditTitle, setMilestoneEditTitle] = useState('')
+  const [milestoneEditContent, setMilestoneEditContent] = useState('')
+
+  const customMilestoneMessages = useMemo(() => {
+    return getCustomMilestoneMessages()
+  }, [milestoneRefreshKey])
 
   const handleStartEdit = useCallback((tag: string) => {
     setEditingTag(tag)
@@ -56,8 +74,63 @@ export default function SettingsPage() {
     removeAlias(originalTag)
   }, [removeAlias])
 
+  const handleStartMilestoneEdit = useCallback((level: MilestoneLevel) => {
+    const custom = customMilestoneMessages[level]
+    const defaultMsg = DEFAULT_MILESTONE_MESSAGES[level]
+    setEditingMilestone(level)
+    setMilestoneEditTitle(custom?.title ?? defaultMsg.title)
+    setMilestoneEditContent(custom?.content ?? defaultMsg.content)
+  }, [customMilestoneMessages])
+
+  const handleCancelMilestoneEdit = useCallback(() => {
+    setEditingMilestone(null)
+    setMilestoneEditTitle('')
+    setMilestoneEditContent('')
+  }, [])
+
+  const handleSaveMilestoneEdit = useCallback((level: MilestoneLevel) => {
+    const trimmedTitle = milestoneEditTitle.trim()
+    const trimmedContent = milestoneEditContent.trim()
+    const custom: CustomMilestoneMessage = {}
+    if (trimmedTitle) {
+      custom.title = trimmedTitle
+    }
+    if (trimmedContent) {
+      custom.content = trimmedContent
+    }
+    setCustomMilestoneMessage(level, custom)
+    setMilestoneRefreshKey((k) => k + 1)
+    setEditingMilestone(null)
+    setMilestoneEditTitle('')
+    setMilestoneEditContent('')
+  }, [milestoneEditTitle, milestoneEditContent])
+
+  const handleResetMilestone = useCallback((level: MilestoneLevel) => {
+    resetCustomMilestoneMessage(level)
+    setMilestoneRefreshKey((k) => k + 1)
+    if (editingMilestone === level) {
+      setEditingMilestone(null)
+      setMilestoneEditTitle('')
+      setMilestoneEditContent('')
+    }
+  }, [editingMilestone])
+
+  const handleResetAllMilestones = useCallback(() => {
+    if (window.confirm('确定要重置所有里程碑的自定义文案吗？此操作不可撤销。')) {
+      resetAllCustomMilestoneMessages()
+      setMilestoneRefreshKey((k) => k + 1)
+      setEditingMilestone(null)
+      setMilestoneEditTitle('')
+      setMilestoneEditContent('')
+    }
+  }, [])
+
   const tagsWithAlias = allDefaultTags.filter((tag) => aliasMap[tag])
   const tagsWithoutAlias = allDefaultTags.filter((tag) => !aliasMap[tag])
+
+  const hasAnyCustomMilestone = MILESTONE_LEVELS.some(
+    (level) => customMilestoneMessages[level] !== undefined,
+  )
 
   return (
     <div className="page settings-page">
@@ -69,7 +142,7 @@ export default function SettingsPage() {
 
       <header className="settings-header">
         <h1>设置</h1>
-        <p className="settings-header__desc">管理标签别名，为默认标签设置个性化名称</p>
+        <p className="settings-header__desc">管理标签别名与里程碑提醒文案</p>
       </header>
 
       <section className="settings-section">
@@ -213,6 +286,122 @@ export default function SettingsPage() {
         {allDefaultTags.length === 0 && (
           <p className="empty-state">暂无标签可配置。</p>
         )}
+      </section>
+
+      <section className="settings-section">
+        <div className="settings-section__header">
+          <h2 className="settings-section__title">里程碑提醒</h2>
+          <button
+            type="button"
+            className="settings-section__reset-btn"
+            onClick={handleResetAllMilestones}
+            disabled={!hasAnyCustomMilestone}
+          >
+            重置全部
+          </button>
+        </div>
+
+        <p className="settings-section__hint">
+          自定义阅读里程碑的标题与文案，保存后将在提示时优先使用。
+        </p>
+
+        <div className="milestone-edit-list">
+          {MILESTONE_LEVELS.map((level) => {
+            const defaultMsg = DEFAULT_MILESTONE_MESSAGES[level]
+            const custom = customMilestoneMessages[level]
+            const isEditing = editingMilestone === level
+            const hasCustom = custom !== undefined
+
+            return (
+              <div
+                key={level}
+                className={`milestone-edit-item milestone-edit-item--level-${level}`}
+              >
+                <div className="milestone-edit-item__header">
+                  <div className="milestone-edit-item__level">
+                    <span className="milestone-edit-item__emoji" aria-hidden="true">
+                      {custom?.emoji ?? defaultMsg.emoji}
+                    </span>
+                    <span className="milestone-edit-item__badge">{level}%</span>
+                  </div>
+                  {hasCustom && (
+                    <span className="milestone-edit-item__custom-tag">已自定义</span>
+                  )}
+                </div>
+
+                {isEditing ? (
+                  <div className="milestone-edit-item__form">
+                    <label className="milestone-edit-item__label">
+                      <span>标题</span>
+                      <input
+                        type="text"
+                        className="milestone-edit-item__input milestone-edit-item__input--title"
+                        value={milestoneEditTitle}
+                        onChange={(e) => setMilestoneEditTitle(e.target.value)}
+                        placeholder={defaultMsg.title}
+                        maxLength={20}
+                      />
+                    </label>
+                    <label className="milestone-edit-item__label">
+                      <span>内容</span>
+                      <textarea
+                        className="milestone-edit-item__input milestone-edit-item__input--content"
+                        value={milestoneEditContent}
+                        onChange={(e) => setMilestoneEditContent(e.target.value)}
+                        placeholder={defaultMsg.content}
+                        rows={2}
+                        maxLength={80}
+                      />
+                    </label>
+                    <div className="milestone-edit-item__actions">
+                      <button
+                        type="button"
+                        className="milestone-edit-item__btn milestone-edit-item__btn--confirm"
+                        onClick={() => handleSaveMilestoneEdit(level)}
+                      >
+                        保存
+                      </button>
+                      <button
+                        type="button"
+                        className="milestone-edit-item__btn milestone-edit-item__btn--cancel"
+                        onClick={handleCancelMilestoneEdit}
+                      >
+                        取消
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="milestone-edit-item__preview">
+                    <h4 className="milestone-edit-item__preview-title">
+                      {custom?.title ?? defaultMsg.title}
+                    </h4>
+                    <p className="milestone-edit-item__preview-content">
+                      {custom?.content ?? defaultMsg.content}
+                    </p>
+                    <div className="milestone-edit-item__actions">
+                      <button
+                        type="button"
+                        className="milestone-edit-item__btn milestone-edit-item__btn--edit"
+                        onClick={() => handleStartMilestoneEdit(level)}
+                      >
+                        编辑
+                      </button>
+                      {hasCustom && (
+                        <button
+                          type="button"
+                          className="milestone-edit-item__btn milestone-edit-item__btn--reset"
+                          onClick={() => handleResetMilestone(level)}
+                        >
+                          重置
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )
+          })}
+        </div>
       </section>
     </div>
   )

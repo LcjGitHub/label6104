@@ -2884,3 +2884,236 @@ body {
     box-shadow 0.3s ease, opacity 0.35s cubic-bezier(0.4, 0, 0.2, 1),
     transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
 }
+
+/* Milestone Edit in Settings */
+.settings-section__reset-btn {
+  font-family: var(--font-serif);
+  font-size: 0.78rem;
+  padding: 0.3rem 0.8rem;
+  background: transparent;
+  border: 1px solid var(--color-border);
+  color: var(--color-ink-faint);
+  cursor: pointer;
+  border-radius: 2px;
+  transition: all 0.2s ease;
+}
+
+.settings-section__reset-btn:hover:not(:disabled) {
+  color: var(--color-danger);
+  border-color: var(--color-danger-soft);
+  background: var(--color-danger-bg);
+}
+
+.settings-section__reset-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.milestone-edit-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-top: 0.75rem;
+}
+
+.milestone-edit-item {
+  background: var(--color-paper-light);
+  border: 1px solid var(--color-border);
+  border-left: 4px solid var(--color-accent);
+  border-radius: 4px;
+  padding: 0.9rem 1rem;
+  transition: all 0.2s ease;
+}
+
+.milestone-edit-item--level-25 {
+  border-left-color: #6b9e50;
+}
+
+.milestone-edit-item--level-50 {
+  border-left-color: #d4a840;
+}
+
+.milestone-edit-item--level-75 {
+  border-left-color: #c27a2e;
+}
+
+.milestone-edit-item--level-100 {
+  border-left-color: #a84c1a;
+}
+
+.milestone-edit-item:hover {
+  border-color: var(--color-accent-soft);
+  box-shadow: 0 2px 8px var(--color-shadow-soft);
+}
+
+.milestone-edit-item__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.6rem;
+}
+
+.milestone-edit-item__level {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.milestone-edit-item__emoji {
+  font-size: 1.4rem;
+  line-height: 1;
+}
+
+.milestone-edit-item__badge {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--color-paper);
+  background: var(--color-accent);
+  padding: 0.15rem 0.55rem;
+  border-radius: 999px;
+  letter-spacing: 0.02em;
+}
+
+.milestone-edit-item--level-25 .milestone-edit-item__badge {
+  background: #6b9e50;
+}
+
+.milestone-edit-item--level-50 .milestone-edit-item__badge {
+  background: #d4a840;
+}
+
+.milestone-edit-item--level-75 .milestone-edit-item__badge {
+  background: #c27a2e;
+}
+
+.milestone-edit-item--level-100 .milestone-edit-item__badge {
+  background: #a84c1a;
+}
+
+.milestone-edit-item__custom-tag {
+  font-size: 0.7rem;
+  color: var(--color-accent);
+  background: var(--color-accent-bg);
+  padding: 0.1rem 0.5rem;
+  border-radius: 2px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+}
+
+.milestone-edit-item__preview-title {
+  font-family: var(--font-display);
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--color-ink);
+  margin: 0 0 0.25rem;
+  letter-spacing: 0.03em;
+}
+
+.milestone-edit-item__preview-content {
+  font-size: 0.85rem;
+  color: var(--color-ink-muted);
+  margin: 0 0 0.6rem;
+  line-height: 1.5;
+}
+
+.milestone-edit-item__form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.milestone-edit-item__label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.78rem;
+  color: var(--color-ink-muted);
+  font-weight: 500;
+}
+
+.milestone-edit-item__input {
+  font-family: var(--font-serif);
+  font-size: 0.88rem;
+  padding: 0.4rem 0.65rem;
+  border: 1px solid var(--color-accent-soft);
+  background: var(--color-paper);
+  color: var(--color-ink);
+  outline: none;
+  border-radius: 2px;
+  transition: all 0.2s ease;
+  resize: vertical;
+  line-height: 1.5;
+}
+
+.milestone-edit-item__input:focus {
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 2px var(--color-accent-ring);
+}
+
+.milestone-edit-item__input--title {
+  font-weight: 500;
+}
+
+.milestone-edit-item__input--content {
+  min-height: 52px;
+}
+
+.milestone-edit-item__actions {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.milestone-edit-item__btn {
+  font-family: var(--font-serif);
+  font-size: 0.75rem;
+  padding: 0.3rem 0.7rem;
+  border: 1px solid var(--color-border);
+  background: var(--color-paper);
+  color: var(--color-ink-muted);
+  cursor: pointer;
+  border-radius: 2px;
+  transition: all 0.2s ease;
+}
+
+.milestone-edit-item__btn--confirm {
+  border-color: var(--color-accent-soft);
+  color: var(--color-accent);
+  background: var(--color-accent-bg);
+}
+
+.milestone-edit-item__btn--confirm:hover:not(:disabled) {
+  background: var(--color-accent-bg-strong);
+  border-color: var(--color-accent);
+}
+
+.milestone-edit-item__btn--cancel:hover {
+  color: var(--color-ink);
+  border-color: var(--color-ink-faint);
+}
+
+.milestone-edit-item__btn--edit:hover {
+  color: var(--color-accent);
+  border-color: var(--color-accent-soft);
+  background: var(--color-accent-bg);
+}
+
+.milestone-edit-item__btn--reset:hover {
+  color: var(--color-danger);
+  border-color: var(--color-danger-soft);
+  background: var(--color-danger-bg);
+}
+
+@media (max-width: 480px) {
+  .milestone-edit-item {
+    padding: 0.75rem 0.85rem;
+  }
+
+  .milestone-edit-item__preview-title {
+    font-size: 0.9rem;
+  }
+
+  .milestone-edit-item__preview-content {
+    font-size: 0.8rem;
+  }
+}

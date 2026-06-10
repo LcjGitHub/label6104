@@ -95,7 +95,8 @@ export default function BookDetailPage() {
     dismiss: dismissMilestoneToast,
   } = useReadingMilestone({
     bookId,
-    currentPercentage: progressPercentage,
+    readCount: readFootnoteIds.size,
+    totalCount: allFootnotes.length,
     customMessages: milestoneCustomMessages,
   })
 
