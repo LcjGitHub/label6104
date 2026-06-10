@@ -3,6 +3,7 @@ import Layout from './components/Layout'
 import HomePage from './pages/HomePage'
 import BookDetailPage from './pages/BookDetailPage'
 import BookmarksPage from './pages/BookmarksPage'
+import ProgressOverview from './pages/ProgressOverview'
 
 export default function App() {
   return (
@@ -11,6 +12,7 @@ export default function App() {
         <Route path="/" element={<HomePage />} />
         <Route path="/book/:bookId" element={<BookDetailPage />} />
         <Route path="/bookmarks" element={<BookmarksPage />} />
+        <Route path="/progress" element={<ProgressOverview />} />
       </Route>
     </Routes>
   )

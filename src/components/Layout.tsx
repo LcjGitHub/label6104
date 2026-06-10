@@ -23,6 +23,14 @@ export default function Layout() {
               书目典藏
             </NavLink>
             <NavLink
+              to="/progress"
+              className={({ isActive }) =>
+                `site-nav__link ${isActive ? 'site-nav__link--active' : ''}`
+              }
+            >
+              阅读进度
+            </NavLink>
+            <NavLink
               to="/bookmarks"
               className={({ isActive }) =>
                 `site-nav__link ${isActive ? 'site-nav__link--active' : ''}`

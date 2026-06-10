@@ -24,3 +24,28 @@ export interface Bookmark {
   bookId: string
   createdAt: number
 }
+
+export interface FootnoteReadRecord {
+  footnoteId: string
+  readAt: number
+}
+
+export interface ReadingProgress {
+  bookId: string
+  totalFootnotes: number
+  readFootnoteIds: string[]
+  readRecords: FootnoteReadRecord[]
+  lastReadAt: number
+  startedAt: number
+}
+
+export interface BookProgressSummary {
+  bookId: string
+  title: string
+  author: string
+  totalFootnotes: number
+  readCount: number
+  percentage: number
+  lastReadAt: number
+  startedAt: number
+}

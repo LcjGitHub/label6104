@@ -4,6 +4,7 @@ interface FootnoteListProps {
   footnotes: Footnote[]
   noteType?: 'footnote' | 'endnote'
   bookmarkedIds?: Set<string>
+  readFootnoteIds?: Set<string>
   onToggleBookmark?: (footnoteId: string) => void
   showBookLink?: boolean
   getBookTitle?: (bookId: string) => string
@@ -16,6 +17,7 @@ export default function FootnoteList({
   footnotes,
   noteType,
   bookmarkedIds,
+  readFootnoteIds,
   onToggleBookmark,
   showBookLink,
   getBookTitle,
@@ -35,9 +37,15 @@ export default function FootnoteList({
     <ol className="footnote-list">
       {footnotes.map((fn) => {
         const isBookmarked = bookmarkedIds?.has(fn.id) ?? false
+        const isRead = readFootnoteIds?.has(fn.id) ?? false
         const bookNoteType = getBookNoteType ? getBookNoteType(fn.bookId) : undefined
         return (
-          <li key={fn.id} className="footnote-item">
+          <li
+            key={fn.id}
+            id={`footnote-${fn.id}`}
+            data-footnote-id={fn.id}
+            className={`footnote-item ${isRead ? 'footnote-item--read' : ''}`}
+          >
             <div className="footnote-item__meta">
               <span className="footnote-item__number">#{fn.number}</span>
               <span className="footnote-item__page">p. {fn.page}</span>
@@ -46,6 +54,7 @@ export default function FootnoteList({
                   {bookNoteType === 'footnote' ? '脚注' : '尾注'}
                 </span>
               )}
+              {isRead && <span className="footnote-item__read-tag">已读</span>}
               {showBookLink && getBookTitle && onBookClick && (
                 <button
                   type="button"

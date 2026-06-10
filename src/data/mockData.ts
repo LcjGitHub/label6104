@@ -1,4 +1,4 @@
-import type { Book, Bookmark, Footnote } from '../types'
+import type { Book, Bookmark, Footnote, ReadingProgress, BookProgressSummary } from '../types'
 
 export const books: Book[] = [
   {
@@ -495,4 +495,157 @@ export function updateBookmark(
   bookmarks[idx] = updated
   writeBookmarks(bookmarks)
   return updated
+}
+
+const PROGRESS_STORAGE_KEY = 'footnote-archive-progress'
+
+function readAllProgress(): Record<string, ReadingProgress> {
+  try {
+    const raw = localStorage.getItem(PROGRESS_STORAGE_KEY)
+    if (!raw) return {}
+    const parsed = JSON.parse(raw)
+    return parsed && typeof parsed === 'object' ? parsed : {}
+  } catch {
+    return {}
+  }
+}
+
+function writeAllProgress(progress: Record<string, ReadingProgress>): void {
+  localStorage.setItem(PROGRESS_STORAGE_KEY, JSON.stringify(progress))
+}
+
+export function getReadingProgress(bookId: string): ReadingProgress | undefined {
+  const all = readAllProgress()
+  return all[bookId]
+}
+
+export function isFootnoteRead(bookId: string, footnoteId: string): boolean {
+  const progress = getReadingProgress(bookId)
+  if (!progress) return false
+  return progress.readFootnoteIds.includes(footnoteId)
+}
+
+export function getReadFootnoteIds(bookId: string): Set<string> {
+  const progress = getReadingProgress(bookId)
+  if (!progress) return new Set()
+  return new Set(progress.readFootnoteIds)
+}
+
+export function markFootnoteAsRead(bookId: string, footnoteId: string): ReadingProgress {
+  const all = readAllProgress()
+  const bookFootnotes = getFootnotesByBookId(bookId)
+  const now = Date.now()
+
+  let progress = all[bookId]
+  if (!progress) {
+    progress = {
+      bookId,
+      totalFootnotes: bookFootnotes.length,
+      readFootnoteIds: [],
+      readRecords: [],
+      lastReadAt: now,
+      startedAt: now,
+    }
+  }
+
+  if (!progress.readFootnoteIds.includes(footnoteId)) {
+    progress.readFootnoteIds.push(footnoteId)
+    progress.readRecords.push({ footnoteId, readAt: now })
+  }
+
+  progress.lastReadAt = now
+  progress.totalFootnotes = bookFootnotes.length
+  all[bookId] = progress
+  writeAllProgress(all)
+  return progress
+}
+
+export function markFootnotesAsRead(bookId: string, footnoteIds: string[]): ReadingProgress {
+  const all = readAllProgress()
+  const bookFootnotes = getFootnotesByBookId(bookId)
+  const now = Date.now()
+
+  let progress = all[bookId]
+  if (!progress) {
+    progress = {
+      bookId,
+      totalFootnotes: bookFootnotes.length,
+      readFootnoteIds: [],
+      readRecords: [],
+      lastReadAt: now,
+      startedAt: now,
+    }
+  }
+
+  for (const fid of footnoteIds) {
+    if (!progress.readFootnoteIds.includes(fid)) {
+      progress.readFootnoteIds.push(fid)
+      progress.readRecords.push({ footnoteId: fid, readAt: now })
+    }
+  }
+
+  progress.lastReadAt = now
+  progress.totalFootnotes = bookFootnotes.length
+  all[bookId] = progress
+  writeAllProgress(all)
+  return progress
+}
+
+export function resetReadingProgress(bookId: string): void {
+  const all = readAllProgress()
+  delete all[bookId]
+  writeAllProgress(all)
+}
+
+export function calculateProgressPercentage(bookId: string): number {
+  const progress = getReadingProgress(bookId)
+  if (!progress || progress.totalFootnotes === 0) return 0
+  return Math.round((progress.readFootnoteIds.length / progress.totalFootnotes) * 100)
+}
+
+export function getAllProgressSummaries(): BookProgressSummary[] {
+  const all = readAllProgress()
+  return books
+    .map((book) => {
+      const progress = all[book.id]
+      const total = book.footnoteCount
+      const readCount = progress?.readFootnoteIds.length ?? 0
+      return {
+        bookId: book.id,
+        title: book.title,
+        author: book.author,
+        totalFootnotes: total,
+        readCount,
+        percentage: total > 0 ? Math.round((readCount / total) * 100) : 0,
+        lastReadAt: progress?.lastReadAt ?? 0,
+        startedAt: progress?.startedAt ?? 0,
+      }
+    })
+    .sort((a, b) => b.lastReadAt - a.lastReadAt)
+}
+
+export function getOverallStats(): {
+  totalBooks: number
+  booksStarted: number
+  booksCompleted: number
+  totalFootnotes: number
+  footnotesRead: number
+  overallPercentage: number
+} {
+  const summaries = getAllProgressSummaries()
+  const totalBooks = summaries.length
+  const booksStarted = summaries.filter((s) => s.readCount > 0).length
+  const booksCompleted = summaries.filter((s) => s.percentage === 100).length
+  const totalFootnotes = summaries.reduce((sum, s) => sum + s.totalFootnotes, 0)
+  const footnotesRead = summaries.reduce((sum, s) => sum + s.readCount, 0)
+  const overallPercentage = totalFootnotes > 0 ? Math.round((footnotesRead / totalFootnotes) * 100) : 0
+
+  return {
+    totalBooks,
+    booksStarted,
+    booksCompleted,
+    totalFootnotes,
+    footnotesRead,
+    overallPercentage,
+  }
 }

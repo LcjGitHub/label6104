@@ -1,12 +1,16 @@
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import FootnoteList from '../components/FootnoteList'
+import ProgressBar from '../components/ProgressBar'
 import SearchBar from '../components/SearchBar'
 import {
   getBookById,
   getFootnotesByBookId,
   getBookmarks,
   toggleBookmark,
+  getReadFootnoteIds,
+  markFootnoteAsRead,
+  calculateProgressPercentage,
 } from '../data/mockData'
 
 type SortOrder = 'asc' | 'desc'
@@ -23,19 +27,15 @@ export default function BookDetailPage() {
   const [query, setQuery] = useState('')
   const [sortOrder, setSortOrder] = useState<SortOrder>('asc')
   const [bookmarkedIds, setBookmarkedIds] = useState<Set<string>>(() => readBookmarkedIds())
-
-  const refreshBookmarks = useCallback(() => {
-    setBookmarkedIds(readBookmarkedIds())
-  }, [])
-
-  const handleToggleBookmark = useCallback(
-    (footnoteId: string) => {
-      if (!bookId) return
-      toggleBookmark(footnoteId, bookId)
-      refreshBookmarks()
-    },
-    [bookId, refreshBookmarks],
+  const [readFootnoteIds, setReadFootnoteIds] = useState<Set<string>>(() =>
+    bookId ? getReadFootnoteIds(bookId) : new Set(),
   )
+  const [progressPercentage, setProgressPercentage] = useState<number>(() =>
+    bookId ? calculateProgressPercentage(bookId) : 0,
+  )
+
+  const observerRef = useRef<IntersectionObserver | null>(null)
+  const processedRef = useRef<Set<string>>(new Set())
 
   const filteredFootnotes = useMemo(() => {
     const normalized = query.trim().toLowerCase()
@@ -55,6 +55,68 @@ export default function BookDetailPage() {
       sortOrder === 'asc' ? a.page - b.page : b.page - a.page,
     )
   }, [allFootnotes, query, sortOrder])
+
+  const refreshBookmarks = useCallback(() => {
+    setBookmarkedIds(readBookmarkedIds())
+  }, [])
+
+  const refreshProgress = useCallback(() => {
+    if (!bookId) return
+    setReadFootnoteIds(getReadFootnoteIds(bookId))
+    setProgressPercentage(calculateProgressPercentage(bookId))
+  }, [bookId])
+
+  const handleToggleBookmark = useCallback(
+    (footnoteId: string) => {
+      if (!bookId) return
+      toggleBookmark(footnoteId, bookId)
+      refreshBookmarks()
+    },
+    [bookId, refreshBookmarks],
+  )
+
+  const handleMarkAsRead = useCallback(
+    (footnoteId: string) => {
+      if (!bookId) return
+      if (processedRef.current.has(footnoteId)) return
+      processedRef.current.add(footnoteId)
+      markFootnoteAsRead(bookId, footnoteId)
+      refreshProgress()
+    },
+    [bookId, refreshProgress],
+  )
+
+  useEffect(() => {
+    if (!bookId) return
+
+    processedRef.current = new Set(readFootnoteIds)
+
+    observerRef.current = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            const footnoteId = entry.target.getAttribute('data-footnote-id')
+            if (footnoteId) {
+              handleMarkAsRead(footnoteId)
+            }
+          }
+        })
+      },
+      {
+        root: null,
+        rootMargin: '-40% 0px -40% 0px',
+        threshold: 0.3,
+      },
+    )
+
+    const elements = document.querySelectorAll<HTMLElement>('[data-footnote-id]')
+    elements.forEach((el) => observerRef.current?.observe(el))
+
+    return () => {
+      observerRef.current?.disconnect()
+      observerRef.current = null
+    }
+  }, [bookId, filteredFootnotes, handleMarkAsRead, readFootnoteIds])
 
   if (!book) {
     return (
@@ -84,6 +146,14 @@ export default function BookDetailPage() {
         <p className="book-header__meta">
           {book.publisher} · {book.year} · 共 {allFootnotes.length} 条
         </p>
+        <div className="book-header__progress">
+          <ProgressBar
+            percentage={progressPercentage}
+            readCount={readFootnoteIds.size}
+            totalCount={allFootnotes.length}
+            size="md"
+          />
+        </div>
       </header>
 
       <div className="toolbar">
@@ -114,6 +184,7 @@ export default function BookDetailPage() {
         footnotes={filteredFootnotes}
         noteType={book.noteType}
         bookmarkedIds={bookmarkedIds}
+        readFootnoteIds={readFootnoteIds}
         onToggleBookmark={handleToggleBookmark}
       />
     </div>
