@@ -1,4 +1,4 @@
-import type { Book, Bookmark, BookmarkGroup, Footnote, ReadingProgress, BookProgressSummary, TagAlias } from '../types'
+import type { Book, Bookmark, BookmarkGroup, Footnote, ReadingProgress, BookProgressSummary, TagAlias, MilestoneLevel, MilestoneRecord, BookMilestoneData, MilestoneMessage } from '../types'
 
 export const books: Book[] = [
   {
@@ -800,6 +800,7 @@ export function resetReadingProgress(bookId: string): void {
   const all = readAllProgress()
   delete all[bookId]
   writeAllProgress(all)
+  resetBookMilestones(bookId)
 }
 
 export function calculateProgressPercentage(bookId: string): number {
@@ -1025,4 +1026,139 @@ export function matchesTagWithAlias(tag: string, searchLower: string): boolean {
   const aliasMap = getTagAliasMap()
   const alias = aliasMap[tag]
   return alias !== undefined && alias.toLowerCase().includes(searchLower)
+}
+
+const MILESTONES_STORAGE_KEY = 'footnote-archive-milestones'
+
+export const MILESTONE_LEVELS: MilestoneLevel[] = [25, 50, 75, 100]
+
+export const DEFAULT_MILESTONE_MESSAGES: Record<MilestoneLevel, MilestoneMessage> = {
+  25: {
+    level: 25,
+    title: '初窥门径',
+    content: '恭喜！你已完成四分之一的阅读，继续加油！',
+    emoji: '🌱',
+  },
+  50: {
+    level: 50,
+    title: '渐入佳境',
+    content: '太棒了！阅读进度已过半，坚持就是胜利！',
+    emoji: '🔥',
+  },
+  75: {
+    level: 75,
+    title: '登堂入室',
+    content: '了不起！只剩最后四分之一，胜利在望！',
+    emoji: '⭐',
+  },
+  100: {
+    level: 100,
+    title: '功德圆满',
+    content: '恭喜你完成了全书阅读！知识就是力量！',
+    emoji: '🎉',
+  },
+}
+
+function readAllMilestones(): Record<string, BookMilestoneData> {
+  try {
+    const raw = localStorage.getItem(MILESTONES_STORAGE_KEY)
+    if (!raw) return {}
+    const parsed = JSON.parse(raw)
+    return parsed && typeof parsed === 'object' ? parsed : {}
+  } catch {
+    return {}
+  }
+}
+
+function writeAllMilestones(milestones: Record<string, BookMilestoneData>): void {
+  localStorage.setItem(MILESTONES_STORAGE_KEY, JSON.stringify(milestones))
+}
+
+export function getBookMilestones(bookId: string): BookMilestoneData | undefined {
+  const all = readAllMilestones()
+  return all[bookId]
+}
+
+export function getAchievedMilestoneLevels(bookId: string): Set<MilestoneLevel> {
+  const data = getBookMilestones(bookId)
+  if (!data) return new Set()
+  return new Set(data.milestones.map((m) => m.level))
+}
+
+export function isMilestoneAchieved(bookId: string, level: MilestoneLevel): boolean {
+  const achieved = getAchievedMilestoneLevels(bookId)
+  return achieved.has(level)
+}
+
+export function markMilestoneAchieved(bookId: string, level: MilestoneLevel): BookMilestoneData {
+  const all = readAllMilestones()
+  const now = Date.now()
+
+  let data = all[bookId]
+  if (!data) {
+    data = { bookId, milestones: [] }
+  }
+
+  const existing = data.milestones.find((m) => m.level === level)
+  if (!existing) {
+    data.milestones.push({ level, achievedAt: now, dismissed: false })
+  }
+
+  all[bookId] = data
+  writeAllMilestones(all)
+  return data
+}
+
+export function dismissMilestone(bookId: string, level: MilestoneLevel): void {
+  const all = readAllMilestones()
+  const data = all[bookId]
+  if (!data) return
+
+  const record = data.milestones.find((m) => m.level === level)
+  if (record) {
+    record.dismissed = true
+  }
+
+  all[bookId] = data
+  writeAllMilestones(all)
+}
+
+export function getUndismissedMilestones(bookId: string): MilestoneRecord[] {
+  const data = getBookMilestones(bookId)
+  if (!data) return []
+  return data.milestones.filter((m) => !m.dismissed)
+}
+
+export function resetBookMilestones(bookId: string): void {
+  const all = readAllMilestones()
+  delete all[bookId]
+  writeAllMilestones(all)
+}
+
+export function checkNewMilestones(
+  bookId: string,
+  currentPercentage: number,
+): MilestoneLevel[] {
+  const achieved = getAchievedMilestoneLevels(bookId)
+  const newlyAchieved: MilestoneLevel[] = []
+
+  for (const level of MILESTONE_LEVELS) {
+    if (!achieved.has(level) && currentPercentage >= level) {
+      newlyAchieved.push(level)
+    }
+  }
+
+  return newlyAchieved
+}
+
+export function getMilestoneMessage(
+  level: MilestoneLevel,
+  customMessages?: Partial<Record<MilestoneLevel, Partial<MilestoneMessage>>>,
+): MilestoneMessage {
+  const defaultMsg = DEFAULT_MILESTONE_MESSAGES[level]
+  const custom = customMessages?.[level]
+  return {
+    ...defaultMsg,
+    ...custom,
+  }
 }

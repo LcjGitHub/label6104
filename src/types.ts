@@ -79,3 +79,23 @@ export interface BookProgressSummary {
   lastReadAt: number
   startedAt: number
 }
+
+export type MilestoneLevel = 25 | 50 | 75 | 100
+
+export interface MilestoneRecord {
+  level: MilestoneLevel
+  achievedAt: number
+  dismissed: boolean
+}
+
+export interface BookMilestoneData {
+  bookId: string
+  milestones: MilestoneRecord[]
+}
+
+export interface MilestoneMessage {
+  level: MilestoneLevel
+  title: string
+  content: string
+  emoji: string
+}

@@ -7,6 +7,7 @@ import AdvancedSearchModal, { DEFAULT_CONDITIONS } from '../components/AdvancedS
 import TagFilter from '../components/TagFilter'
 import TagCloud from '../components/TagCloud'
 import ExportButton from '../components/ExportButton'
+import MilestoneToast from '../components/MilestoneToast'
 import {
   getBookById,
   getFootnotesByBookId,
@@ -21,9 +22,11 @@ import {
   getBookmarkGroups,
   setBookmarkGroup,
   matchesTagWithAlias,
+  dismissMilestone,
 } from '../data/mockData'
-import type { AdvancedSearchConditions, BookmarkGroup } from '../types'
+import type { AdvancedSearchConditions, BookmarkGroup, MilestoneLevel, MilestoneMessage } from '../types'
 import { useTagAlias } from '../context/TagAliasContext'
+import { useReadingMilestone } from '../hooks/useReadingMilestone'
 
 type SortOrder = 'asc' | 'desc'
 
@@ -55,6 +58,54 @@ export default function BookDetailPage() {
   const [advSearchOpen, setAdvSearchOpen] = useState(false)
   const [advConditions, setAdvConditions] = useState<AdvancedSearchConditions>(DEFAULT_CONDITIONS)
   const { getDisplayName } = useTagAlias()
+
+  const milestoneCustomMessages = useMemo<Partial<Record<MilestoneLevel, Partial<MilestoneMessage>>>>(
+    () => ({
+      25: {
+        title: book ? `《${book.title}》初窥门径` : '初窥门径',
+        content: book
+          ? `恭喜！你已完成《${book.title}》四分之一的注释阅读，继续加油！`
+          : '恭喜！你已完成四分之一的阅读，继续加油！',
+      },
+      50: {
+        title: book ? `《${book.title}》渐入佳境` : '渐入佳境',
+        content: book
+          ? `太棒了！《${book.title}》的阅读进度已过半，坚持就是胜利！`
+          : '太棒了！阅读进度已过半，坚持就是胜利！',
+      },
+      75: {
+        title: book ? `《${book.title}》登堂入室` : '登堂入室',
+        content: book
+          ? `了不起！《${book.title}》只剩最后四分之一，胜利在望！`
+          : '了不起！只剩最后四分之一，胜利在望！',
+      },
+      100: {
+        title: book ? `《${book.title}》功德圆满` : '功德圆满',
+        content: book
+          ? `恭喜你完成了《${book.title}》全部注释的阅读！知识就是力量！`
+          : '恭喜你完成了全书阅读！知识就是力量！',
+      },
+    }),
+    [book],
+  )
+
+  const {
+    activeMilestone,
+    pendingLevels,
+    dismiss: dismissMilestoneToast,
+  } = useReadingMilestone({
+    bookId,
+    currentPercentage: progressPercentage,
+    customMessages: milestoneCustomMessages,
+  })
+
+  const handleDismissAllMilestones = useCallback(() => {
+    if (!bookId) return
+    pendingLevels.forEach((level) => {
+      dismissMilestone(bookId, level)
+    })
+    dismissMilestoneToast()
+  }, [bookId, pendingLevels, dismissMilestoneToast])
 
   const observerRef = useRef<IntersectionObserver | null>(null)
   const processedRef = useRef<Set<string>>(new Set())
@@ -412,6 +463,13 @@ export default function BookDetailPage() {
         onApply={handleApplyAdvancedConditions}
         conditions={advConditions}
         allTags={allTags}
+      />
+
+      <MilestoneToast
+        message={activeMilestone}
+        pendingCount={pendingLevels.length - 1}
+        onDismiss={dismissMilestoneToast}
+        onDismissAll={handleDismissAllMilestones}
       />
     </div>
   )
