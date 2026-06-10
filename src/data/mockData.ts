@@ -924,6 +924,32 @@ export function formatAnnotationsAsText(book: Book, footnotes: Footnote[]): stri
   return lines.join('\n')
 }
 
+function escapeCsvField(value: string): string {
+  if (value.includes(';') || value.includes('"') || value.includes('\n') || value.includes('\r')) {
+    return `"${value.replace(/"/g, '""')}"`
+  }
+  return value
+}
+
+export function formatAnnotationsAsCSV(book: Book, footnotes: Footnote[]): string {
+  const headers = ['注释编号', '页码', '原文', '注解', '标签']
+  const rows = footnotes.map((fn) => [
+    String(fn.number),
+    String(fn.page),
+    fn.originalText,
+    fn.annotation,
+    fn.tags.join('、'),
+  ])
+
+  const csvLines = [
+    headers.join(';'),
+    ...rows.map((row) => row.map(escapeCsvField).join(';')),
+  ]
+
+  const BOM = '\uFEFF'
+  return BOM + csvLines.join('\n')
+}
+
 export function triggerDownload(content: string, filename: string, mimeType: string): void {
   const blob = new Blob([content], { type: mimeType })
   const url = URL.createObjectURL(blob)

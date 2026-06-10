@@ -3,10 +3,11 @@ import type { Book, Footnote } from '../types'
 import {
   formatAnnotationsAsJSON,
   formatAnnotationsAsText,
+  formatAnnotationsAsCSV,
   triggerDownload,
 } from '../data/mockData'
 
-type ExportFormat = 'text' | 'json'
+type ExportFormat = 'text' | 'json' | 'csv'
 type ExportRange = 'filtered' | 'all'
 
 interface ExportButtonProps {
@@ -59,6 +60,10 @@ export default function ExportButton({
       content = formatAnnotationsAsJSON(book, exportFootnotes)
       filename = `${sanitizedTitle}_注释_${rangeLabel}_${timestamp}.json`
       mimeType = 'application/json'
+    } else if (format === 'csv') {
+      content = formatAnnotationsAsCSV(book, exportFootnotes)
+      filename = `${sanitizedTitle}_${timestamp}_CSV.csv`
+      mimeType = 'text/csv;charset=utf-8'
     } else {
       content = formatAnnotationsAsText(book, exportFootnotes)
       filename = `${sanitizedTitle}_注释_${rangeLabel}_${timestamp}.txt`
@@ -98,6 +103,7 @@ export default function ExportButton({
               className="export-control__select"
             >
               <option value="text">纯文本</option>
+              <option value="csv">CSV 表格</option>
               <option value="json">结构化数据</option>
             </select>
             <button
