@@ -17,7 +17,10 @@ import {
   addUserTag,
   removeUserTag,
   isDefaultTag,
+  getBookmarkGroups,
+  setBookmarkGroup,
 } from '../data/mockData'
+import type { BookmarkGroup } from '../types'
 
 type SortOrder = 'asc' | 'desc'
 
@@ -44,6 +47,8 @@ export default function BookDetailPage() {
   const [progressPercentage, setProgressPercentage] = useState<number>(() =>
     bookId ? calculateProgressPercentage(bookId) : 0,
   )
+  const [groups, setGroups] = useState<BookmarkGroup[]>(() => getBookmarkGroups())
+  const [bookmarkRefreshKey, setBookmarkRefreshKey] = useState(0)
 
   const observerRef = useRef<IntersectionObserver | null>(null)
   const processedRef = useRef<Set<string>>(new Set())
@@ -68,6 +73,15 @@ export default function BookDetailPage() {
     }
     return Array.from(tagSet).sort()
   }, [allFootnotes])
+
+  const footnoteGroupMap = useMemo(() => {
+    const map: Record<string, string | null> = {}
+    const bookmarks = getBookmarks()
+    for (const bm of bookmarks) {
+      map[bm.footnoteId] = bm.groupId
+    }
+    return map
+  }, [bookmarkRefreshKey])
 
   const filteredFootnotes = useMemo(() => {
     const normalized = query.trim().toLowerCase()
@@ -97,7 +111,17 @@ export default function BookDetailPage() {
 
   const refreshBookmarks = useCallback(() => {
     setBookmarkedIds(readBookmarkedIds())
+    setGroups(getBookmarkGroups())
+    setBookmarkRefreshKey((k) => k + 1)
   }, [])
+
+  const handleChangeGroup = useCallback(
+    (footnoteId: string, groupId: string | null) => {
+      setBookmarkGroup(footnoteId, groupId)
+      refreshBookmarks()
+    },
+    [refreshBookmarks],
+  )
 
   const refreshProgress = useCallback(() => {
     if (!bookId) return
@@ -301,6 +325,10 @@ export default function BookDetailPage() {
         onAddTag={handleAddTag}
         onRemoveTag={handleRemoveTag}
         isTagRemovable={handleIsTagRemovable}
+        showGroupSelector
+        bookmarkGroups={groups}
+        footnoteGroupMap={footnoteGroupMap}
+        onChangeGroup={handleChangeGroup}
       />
     </div>
   )

@@ -23,6 +23,7 @@ import {
 type SortOrder = 'newest' | 'oldest' | 'page'
 
 const GROUP_COLORS = ['#d4a840', '#5a7c3a', '#8b6914', '#a04030', '#5060a0', '#604080', '#308080']
+const UNGROUPED_ID = '__ungrouped__' as const
 
 function readBookmarkedIds(): Set<string> {
   return new Set(getBookmarks().map((b) => b.footnoteId))
@@ -45,6 +46,10 @@ export default function BookmarksPage() {
   const [editGroupColor, setEditGroupColor] = useState('')
 
   const bookmarkedItems = useMemo(() => getBookmarkedFootnotes(), [refreshKey])
+
+  const ungroupedCount = useMemo(() => {
+    return bookmarkedItems.filter((item) => item.bookmark.groupId === null).length
+  }, [bookmarkedItems])
 
   const footnoteGroupMap = useMemo(() => {
     const map: Record<string, string | null> = {}
@@ -81,7 +86,9 @@ export default function BookmarksPage() {
     const normalized = query.trim().toLowerCase()
     let result = bookmarkedItems
 
-    if (selectedGroupId !== null) {
+    if (selectedGroupId === UNGROUPED_ID) {
+      result = result.filter((item) => item.bookmark.groupId === null)
+    } else if (selectedGroupId !== null) {
       result = result.filter((item) => item.bookmark.groupId === selectedGroupId)
     }
 
@@ -256,10 +263,18 @@ export default function BookmarksPage() {
     [groups, selectedGroupId, refreshGroups, refreshBookmarks],
   )
 
-  const selectedGroup = selectedGroupId ? groups.find((g) => g.id === selectedGroupId) : null
+  const selectedGroup =
+    selectedGroupId !== null && selectedGroupId !== UNGROUPED_ID
+      ? groups.find((g) => g.id === selectedGroupId)
+      : null
+  const isUngroupedSelected = selectedGroupId === UNGROUPED_ID
   const totalCount = bookmarkedItems.length
   const currentGroupCount =
-    selectedGroupId === null ? totalCount : getBookmarkCountByGroup(selectedGroupId)
+    selectedGroupId === null
+      ? totalCount
+      : selectedGroupId === UNGROUPED_ID
+        ? ungroupedCount
+        : getBookmarkCountByGroup(selectedGroupId)
 
   return (
     <div className="page bookmarks-page">
@@ -297,6 +312,15 @@ export default function BookmarksPage() {
             <span className="group-chip__dot" style={{ backgroundColor: '#8a7355' }} />
             <span className="group-chip__name">全部</span>
             <span className="group-chip__count">{totalCount}</span>
+          </button>
+          <button
+            type="button"
+            className={`group-chip ${isUngroupedSelected ? 'group-chip--active' : ''}`}
+            onClick={() => handleSelectGroup(UNGROUPED_ID)}
+          >
+            <span className="group-chip__dot" style={{ backgroundColor: '#8a7355' }} />
+            <span className="group-chip__name">未分组</span>
+            <span className="group-chip__count">{ungroupedCount}</span>
           </button>
           {groups.map((group) => (
             <div key={group.id} className="group-chip-wrapper">
@@ -469,6 +493,8 @@ export default function BookmarksPage() {
               <>
                 分组「<span style={{ color: selectedGroup.color }}>{selectedGroup.name}</span>」
               </>
+            ) : isUngroupedSelected ? (
+              '未分组'
             ) : (
               '全部分组'
             )}
@@ -497,6 +523,13 @@ export default function BookmarksPage() {
             bookmarkGroups={groups}
             footnoteGroupMap={footnoteGroupMap}
             onChangeGroup={handleChangeGroup}
+            emptyText={
+              selectedGroupId !== null
+                ? selectedGroupId === UNGROUPED_ID
+                  ? '未分组暂无书签'
+                  : '该分组暂无书签'
+                : undefined
+            }
           />
         </>
       )}

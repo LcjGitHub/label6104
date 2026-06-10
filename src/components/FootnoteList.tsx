@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { BookmarkGroup, Footnote } from '../types'
 
 interface FootnoteListProps {
@@ -45,6 +45,22 @@ export default function FootnoteList({
   const [addingTagFor, setAddingTagFor] = useState<string | null>(null)
   const [newTagText, setNewTagText] = useState('')
   const [activeGroupDropdown, setActiveGroupDropdown] = useState<string | null>(null)
+  const groupDropdownRef = useRef<HTMLDivElement | null>(null)
+
+  useEffect(() => {
+    if (activeGroupDropdown === null) return
+
+    function handleClickOutside(event: MouseEvent) {
+      if (groupDropdownRef.current && !groupDropdownRef.current.contains(event.target as Node)) {
+        setActiveGroupDropdown(null)
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [activeGroupDropdown])
 
   if (footnotes.length === 0) {
     const defaultText =
@@ -124,7 +140,14 @@ export default function FootnoteList({
               )}
               <div className="footnote-item__spacer" />
               {showGroupSelector && isBookmarked && bookmarkGroups.length > 0 && (
-                <div className="group-selector-wrapper">
+                <div
+                  className="group-selector-wrapper"
+                  ref={(el) => {
+                    if (activeGroupDropdown === fn.id) {
+                      groupDropdownRef.current = el
+                    }
+                  }}
+                >
                   <button
                     type="button"
                     className={`group-selector-btn ${activeGroupDropdown === fn.id ? 'group-selector-btn--active' : ''}`}
