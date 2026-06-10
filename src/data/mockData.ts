@@ -1,4 +1,4 @@
-import type { Book, Bookmark, Footnote, ReadingProgress, BookProgressSummary } from '../types'
+import type { Book, Bookmark, BookmarkGroup, Footnote, ReadingProgress, BookProgressSummary } from '../types'
 
 export const books: Book[] = [
   {
@@ -507,13 +507,27 @@ export function isDefaultTag(footnoteId: string, tag: string): boolean {
 }
 
 const BOOKMARKS_STORAGE_KEY = 'footnote-archive-bookmarks'
+const BOOKMARK_GROUPS_STORAGE_KEY = 'footnote-archive-bookmark-groups'
+
+const DEFAULT_GROUPS: BookmarkGroup[] = [
+  { id: 'group-important', name: '重要', color: '#d4a840', createdAt: 0, isDefault: true },
+  { id: 'group-review', name: '待复习', color: '#5a7c3a', createdAt: 0, isDefault: true },
+  { id: 'group-reference', name: '引用参考', color: '#8b6914', createdAt: 0, isDefault: true },
+]
+
+function migrateBookmarks(bookmarks: any[]): Bookmark[] {
+  return bookmarks.map((bm) => ({
+    ...bm,
+    groupId: bm.groupId ?? null,
+  }))
+}
 
 function readBookmarks(): Bookmark[] {
   try {
     const raw = localStorage.getItem(BOOKMARKS_STORAGE_KEY)
     if (!raw) return []
     const parsed = JSON.parse(raw)
-    return Array.isArray(parsed) ? parsed : []
+    return Array.isArray(parsed) ? migrateBookmarks(parsed) : []
   } catch {
     return []
   }
@@ -535,7 +549,7 @@ export function isBookmarked(footnoteId: string): boolean {
   return readBookmarks().some((b) => b.footnoteId === footnoteId)
 }
 
-export function addBookmark(footnoteId: string, bookId: string): Bookmark {
+export function addBookmark(footnoteId: string, bookId: string, groupId: string | null = null): Bookmark {
   const bookmarks = readBookmarks()
   const existing = bookmarks.find((b) => b.footnoteId === footnoteId)
   if (existing) return existing
@@ -545,6 +559,7 @@ export function addBookmark(footnoteId: string, bookId: string): Bookmark {
     footnoteId,
     bookId,
     createdAt: Date.now(),
+    groupId,
   }
   bookmarks.push(bookmark)
   writeBookmarks(bookmarks)
@@ -566,6 +581,14 @@ export function toggleBookmark(footnoteId: string, bookId: string): { bookmarked
   return { bookmarked: true }
 }
 
+export function setBookmarkGroup(footnoteId: string, groupId: string | null): void {
+  const bookmarks = readBookmarks()
+  const idx = bookmarks.findIndex((b) => b.footnoteId === footnoteId)
+  if (idx === -1) return
+  bookmarks[idx] = { ...bookmarks[idx], groupId }
+  writeBookmarks(bookmarks)
+}
+
 export function getBookmarkedFootnotes(): { footnote: Footnote; book: Book; bookmark: Bookmark }[] {
   const bookmarks = readBookmarks().sort((a, b) => b.createdAt - a.createdAt)
   return bookmarks
@@ -578,6 +601,12 @@ export function getBookmarkedFootnotes(): { footnote: Footnote; book: Book; book
     .filter((item): item is { footnote: Footnote; book: Book; bookmark: Bookmark } => item !== null)
 }
 
+export function getBookmarkedFootnotesByGroup(groupId: string | null): { footnote: Footnote; book: Book; bookmark: Bookmark }[] {
+  const all = getBookmarkedFootnotes()
+  if (groupId === null) return all
+  return all.filter((item) => item.bookmark.groupId === groupId)
+}
+
 export function getFootnoteById(id: string): Footnote | undefined {
   const fn = footnotes.find((f) => f.id === id)
   return fn ? mergeFootnoteTags(fn) : undefined
@@ -585,7 +614,7 @@ export function getFootnoteById(id: string): Footnote | undefined {
 
 export function updateBookmark(
   id: string,
-  updates: Partial<Pick<Bookmark, 'footnoteId' | 'bookId'>>,
+  updates: Partial<Pick<Bookmark, 'footnoteId' | 'bookId' | 'groupId'>>,
 ): Bookmark | undefined {
   const bookmarks = readBookmarks()
   const idx = bookmarks.findIndex((b) => b.id === id)
@@ -595,6 +624,82 @@ export function updateBookmark(
   bookmarks[idx] = updated
   writeBookmarks(bookmarks)
   return updated
+}
+
+function readBookmarkGroups(): BookmarkGroup[] {
+  try {
+    const raw = localStorage.getItem(BOOKMARK_GROUPS_STORAGE_KEY)
+    if (!raw) return [...DEFAULT_GROUPS]
+    const parsed = JSON.parse(raw)
+    if (!Array.isArray(parsed) || parsed.length === 0) return [...DEFAULT_GROUPS]
+    const defaultIds = new Set(DEFAULT_GROUPS.map((g) => g.id))
+    const storedDefaults = parsed.filter((g) => defaultIds.has(g.id))
+    const storedDefaultsIds = new Set(storedDefaults.map((g) => g.id))
+    const missingDefaults = DEFAULT_GROUPS.filter((g) => !storedDefaultsIds.has(g.id))
+    return [...missingDefaults, ...parsed]
+  } catch {
+    return [...DEFAULT_GROUPS]
+  }
+}
+
+function writeBookmarkGroups(groups: BookmarkGroup[]): void {
+  localStorage.setItem(BOOKMARK_GROUPS_STORAGE_KEY, JSON.stringify(groups))
+}
+
+export function getBookmarkGroups(): BookmarkGroup[] {
+  return readBookmarkGroups().sort((a, b) => a.createdAt - b.createdAt)
+}
+
+export function getBookmarkGroupById(id: string): BookmarkGroup | undefined {
+  return readBookmarkGroups().find((g) => g.id === id)
+}
+
+export function createBookmarkGroup(name: string, color: string = '#8b6914'): BookmarkGroup {
+  const groups = readBookmarkGroups()
+  const group: BookmarkGroup = {
+    id: `group-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    name: name.trim(),
+    color,
+    createdAt: Date.now(),
+  }
+  groups.push(group)
+  writeBookmarkGroups(groups)
+  return group
+}
+
+export function updateBookmarkGroup(id: string, updates: Partial<Pick<BookmarkGroup, 'name' | 'color'>>): BookmarkGroup | undefined {
+  const groups = readBookmarkGroups()
+  const idx = groups.findIndex((g) => g.id === id)
+  if (idx === -1) return undefined
+  if (groups[idx].isDefault) return undefined
+
+  const updated: BookmarkGroup = { ...groups[idx], ...updates }
+  groups[idx] = updated
+  writeBookmarkGroups(groups)
+  return updated
+}
+
+export function deleteBookmarkGroup(id: string): boolean {
+  const groups = readBookmarkGroups()
+  const target = groups.find((g) => g.id === id)
+  if (!target || target.isDefault) return false
+
+  const filtered = groups.filter((g) => g.id !== id)
+  writeBookmarkGroups(filtered)
+
+  const bookmarks = readBookmarks()
+  const updatedBookmarks = bookmarks.map((bm) =>
+    bm.groupId === id ? { ...bm, groupId: null } : bm,
+  )
+  writeBookmarks(updatedBookmarks)
+
+  return true
+}
+
+export function getBookmarkCountByGroup(groupId: string | null): number {
+  const bookmarks = readBookmarks()
+  if (groupId === null) return bookmarks.length
+  return bookmarks.filter((b) => b.groupId === groupId).length
 }
 
 const PROGRESS_STORAGE_KEY = 'footnote-archive-progress'

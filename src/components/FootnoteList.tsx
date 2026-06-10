@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import type { Footnote } from '../types'
+import type { BookmarkGroup, Footnote } from '../types'
 
 interface FootnoteListProps {
   footnotes: Footnote[]
@@ -16,6 +16,10 @@ interface FootnoteListProps {
   getBookNoteType?: (bookId: string) => 'footnote' | 'endnote' | undefined
   onBookClick?: (bookId: string) => void
   emptyText?: string
+  showGroupSelector?: boolean
+  bookmarkGroups?: BookmarkGroup[]
+  footnoteGroupMap?: Record<string, string | null>
+  onChangeGroup?: (footnoteId: string, groupId: string | null) => void
 }
 
 export default function FootnoteList({
@@ -33,9 +37,14 @@ export default function FootnoteList({
   getBookNoteType,
   onBookClick,
   emptyText,
+  showGroupSelector = false,
+  bookmarkGroups = [],
+  footnoteGroupMap = {},
+  onChangeGroup,
 }: FootnoteListProps) {
   const [addingTagFor, setAddingTagFor] = useState<string | null>(null)
   const [newTagText, setNewTagText] = useState('')
+  const [activeGroupDropdown, setActiveGroupDropdown] = useState<string | null>(null)
 
   if (footnotes.length === 0) {
     const defaultText =
@@ -62,6 +71,23 @@ export default function FootnoteList({
       setAddingTagFor(null)
       setNewTagText('')
     }
+  }
+
+  function handleToggleGroupDropdown(footnoteId: string) {
+    setActiveGroupDropdown((prev) => (prev === footnoteId ? null : footnoteId))
+  }
+
+  function handleSelectGroup(footnoteId: string, groupId: string | null) {
+    if (onChangeGroup) {
+      onChangeGroup(footnoteId, groupId)
+    }
+    setActiveGroupDropdown(null)
+  }
+
+  function getCurrentGroup(footnoteId: string): BookmarkGroup | undefined {
+    const groupId = footnoteGroupMap[footnoteId]
+    if (!groupId) return undefined
+    return bookmarkGroups.find((g) => g.id === groupId)
   }
 
   return (
@@ -97,6 +123,54 @@ export default function FootnoteList({
                 </button>
               )}
               <div className="footnote-item__spacer" />
+              {showGroupSelector && isBookmarked && bookmarkGroups.length > 0 && (
+                <div className="group-selector-wrapper">
+                  <button
+                    type="button"
+                    className={`group-selector-btn ${activeGroupDropdown === fn.id ? 'group-selector-btn--active' : ''}`}
+                    onClick={() => handleToggleGroupDropdown(fn.id)}
+                    aria-label="选择分组"
+                    title="选择分组"
+                  >
+                    {(() => {
+                      const currentGroup = getCurrentGroup(fn.id)
+                      if (currentGroup) {
+                        return (
+                          <>
+                            <span className="group-selector-btn__dot" style={{ backgroundColor: currentGroup.color }} />
+                            <span className="group-selector-btn__name">{currentGroup.name}</span>
+                          </>
+                        )
+                      }
+                      return <span className="group-selector-btn__placeholder">选择分组</span>
+                    })()}
+                    <span className="group-selector-btn__arrow">▾</span>
+                  </button>
+                  {activeGroupDropdown === fn.id && (
+                    <div className="group-dropdown" role="menu">
+                      <button
+                        type="button"
+                        className={`group-dropdown__item ${footnoteGroupMap[fn.id] === null ? 'group-dropdown__item--active' : ''}`}
+                        onClick={() => handleSelectGroup(fn.id, null)}
+                      >
+                        <span className="group-dropdown__dot" style={{ backgroundColor: '#8a7355' }} />
+                        <span>未分组</span>
+                      </button>
+                      {bookmarkGroups.map((group) => (
+                        <button
+                          key={group.id}
+                          type="button"
+                          className={`group-dropdown__item ${footnoteGroupMap[fn.id] === group.id ? 'group-dropdown__item--active' : ''}`}
+                          onClick={() => handleSelectGroup(fn.id, group.id)}
+                        >
+                          <span className="group-dropdown__dot" style={{ backgroundColor: group.color }} />
+                          <span>{group.name}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
               {onToggleBookmark && (
                 <button
                   type="button"

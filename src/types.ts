@@ -24,6 +24,15 @@ export interface Bookmark {
   footnoteId: string
   bookId: string
   createdAt: number
+  groupId: string | null
+}
+
+export interface BookmarkGroup {
+  id: string
+  name: string
+  color: string
+  createdAt: number
+  isDefault?: boolean
 }
 
 export interface FootnoteReadRecord {
