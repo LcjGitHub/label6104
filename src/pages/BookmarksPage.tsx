@@ -2,11 +2,15 @@ import { useCallback, useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import FootnoteList from '../components/FootnoteList'
 import SearchBar from '../components/SearchBar'
+import TagFilter from '../components/TagFilter'
 import {
   getBookById,
   getBookmarkedFootnotes,
   getBookmarks,
   toggleBookmark,
+  addUserTag,
+  removeUserTag,
+  isDefaultTag,
 } from '../data/mockData'
 
 type SortOrder = 'newest' | 'oldest' | 'page'
@@ -19,13 +23,28 @@ export default function BookmarksPage() {
   const navigate = useNavigate()
   const [query, setQuery] = useState('')
   const [sortOrder, setSortOrder] = useState<SortOrder>('newest')
+  const [selectedTags, setSelectedTags] = useState<Set<string>>(new Set())
   const [bookmarkedIds, setBookmarkedIds] = useState<Set<string>>(() => readBookmarkedIds())
   const [refreshKey, setRefreshKey] = useState(0)
 
   const bookmarkedItems = useMemo(() => getBookmarkedFootnotes(), [refreshKey])
 
+  const allTags = useMemo(() => {
+    const tagSet = new Set<string>()
+    for (const item of bookmarkedItems) {
+      for (const tag of item.footnote.tags) {
+        tagSet.add(tag)
+      }
+    }
+    return Array.from(tagSet).sort()
+  }, [bookmarkedItems])
+
   const refreshBookmarks = useCallback(() => {
     setBookmarkedIds(readBookmarkedIds())
+    setRefreshKey((k) => k + 1)
+  }, [])
+
+  const refreshTags = useCallback(() => {
     setRefreshKey((k) => k + 1)
   }, [])
 
@@ -40,7 +59,14 @@ export default function BookmarksPage() {
           footnote.annotation.toLowerCase().includes(normalized) ||
           String(footnote.number).includes(normalized) ||
           String(footnote.page).includes(normalized) ||
-          book.title.toLowerCase().includes(normalized),
+          book.title.toLowerCase().includes(normalized) ||
+          footnote.tags.some((t) => t.toLowerCase().includes(normalized)),
+      )
+    }
+
+    if (selectedTags.size > 0) {
+      result = result.filter(({ footnote }) =>
+        Array.from(selectedTags).some((tag) => footnote.tags.includes(tag)),
       )
     }
 
@@ -56,7 +82,7 @@ export default function BookmarksPage() {
           return 0
       }
     })
-  }, [bookmarkedItems, query, sortOrder])
+  }, [bookmarkedItems, query, sortOrder, selectedTags])
 
   const handleToggleBookmark = useCallback(
     (footnoteId: string) => {
@@ -66,6 +92,49 @@ export default function BookmarksPage() {
       refreshBookmarks()
     },
     [bookmarkedItems, refreshBookmarks],
+  )
+
+  const handleToggleTag = useCallback((tag: string) => {
+    setSelectedTags((prev) => {
+      const next = new Set(prev)
+      if (next.has(tag)) {
+        next.delete(tag)
+      } else {
+        next.add(tag)
+      }
+      return next
+    })
+  }, [])
+
+  const handleClearTags = useCallback(() => {
+    setSelectedTags(new Set())
+  }, [])
+
+  const handleTagClick = useCallback((tag: string) => {
+    handleToggleTag(tag)
+  }, [handleToggleTag])
+
+  const handleAddTag = useCallback(
+    (footnoteId: string, tag: string) => {
+      addUserTag(footnoteId, tag)
+      refreshTags()
+    },
+    [refreshTags],
+  )
+
+  const handleRemoveTag = useCallback(
+    (footnoteId: string, tag: string) => {
+      removeUserTag(footnoteId, tag)
+      refreshTags()
+    },
+    [refreshTags],
+  )
+
+  const handleIsTagRemovable = useCallback(
+    (footnoteId: string, tag: string) => {
+      return !isDefaultTag(footnoteId, tag)
+    },
+    [],
   )
 
   const getBookTitle = useCallback((bookId: string) => {
@@ -101,7 +170,7 @@ export default function BookmarksPage() {
       </header>
 
       <div className="toolbar">
-        <SearchBar value={query} onChange={setQuery} placeholder="搜索收藏内容或书名..." />
+        <SearchBar value={query} onChange={setQuery} placeholder="搜索收藏内容、书名或标签..." />
         <div className="toolbar__actions">
           <label className="sort-control">
             <span>排序方式</span>
@@ -131,16 +200,31 @@ export default function BookmarksPage() {
         </div>
       ) : (
         <>
+          <TagFilter
+            tags={allTags}
+            selectedTags={selectedTags}
+            onToggleTag={handleToggleTag}
+            onClearAll={handleClearTags}
+          />
+
           <p className="result-summary" aria-live="polite">
-            {query.trim()
-              ? `找到 ${filteredItems.length} 条匹配「${query.trim()}」`
+            {query.trim() || selectedTags.size > 0
+              ? `找到 ${filteredItems.length} 条匹配`
               : `显示全部 ${filteredItems.length} 条收藏`}
+            {query.trim() ? ` · 关键字「${query.trim()}」` : ''}
+            {selectedTags.size > 0
+              ? ` · 标签「${Array.from(selectedTags).join('、')}」（满足任一）`
+              : ''}
           </p>
 
           <FootnoteList
             footnotes={filteredItems.map((item) => item.footnote)}
             bookmarkedIds={bookmarkedIds}
             onToggleBookmark={handleToggleBookmark}
+            onTagClick={handleTagClick}
+            onAddTag={handleAddTag}
+            onRemoveTag={handleRemoveTag}
+            isTagRemovable={handleIsTagRemovable}
             showBookLink
             getBookTitle={getBookTitle}
             getBookNoteType={getBookNoteType}

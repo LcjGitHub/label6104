@@ -13,6 +13,9 @@ import {
   getReadFootnoteIds,
   markFootnoteAsRead,
   calculateProgressPercentage,
+  addUserTag,
+  removeUserTag,
+  isDefaultTag,
 } from '../data/mockData'
 
 type SortOrder = 'asc' | 'desc'
@@ -24,7 +27,11 @@ function readBookmarkedIds(): Set<string> {
 export default function BookDetailPage() {
   const { bookId } = useParams<{ bookId: string }>()
   const book = bookId ? getBookById(bookId) : undefined
-  const allFootnotes = bookId ? getFootnotesByBookId(bookId) : []
+  const [tagRefreshKey, setTagRefreshKey] = useState(0)
+  const allFootnotes = useMemo(
+    () => (bookId ? getFootnotesByBookId(bookId) : []),
+    [bookId, tagRefreshKey],
+  )
 
   const [query, setQuery] = useState('')
   const [sortOrder, setSortOrder] = useState<SortOrder>('asc')
@@ -47,6 +54,7 @@ export default function BookDetailPage() {
     setQuery('')
     setSortOrder('asc')
     setSelectedTags(new Set())
+    setTagRefreshKey((k) => k + 1)
     processedRef.current = new Set()
   }, [bookId])
 
@@ -77,7 +85,7 @@ export default function BookDetailPage() {
 
     if (selectedTags.size > 0) {
       result = result.filter((fn) =>
-        Array.from(selectedTags).every((tag) => fn.tags.includes(tag)),
+        Array.from(selectedTags).some((tag) => fn.tags.includes(tag)),
       )
     }
 
@@ -95,6 +103,10 @@ export default function BookDetailPage() {
     setReadFootnoteIds(getReadFootnoteIds(bookId))
     setProgressPercentage(calculateProgressPercentage(bookId))
   }, [bookId])
+
+  const refreshTags = useCallback(() => {
+    setTagRefreshKey((k) => k + 1)
+  }, [])
 
   const handleToggleBookmark = useCallback(
     (footnoteId: string) => {
@@ -124,6 +136,29 @@ export default function BookDetailPage() {
   const handleTagClick = useCallback((tag: string) => {
     handleToggleTag(tag)
   }, [handleToggleTag])
+
+  const handleAddTag = useCallback(
+    (footnoteId: string, tag: string) => {
+      addUserTag(footnoteId, tag)
+      refreshTags()
+    },
+    [refreshTags],
+  )
+
+  const handleRemoveTag = useCallback(
+    (footnoteId: string, tag: string) => {
+      removeUserTag(footnoteId, tag)
+      refreshTags()
+    },
+    [refreshTags],
+  )
+
+  const handleIsTagRemovable = useCallback(
+    (footnoteId: string, tag: string) => {
+      return !isDefaultTag(footnoteId, tag)
+    },
+    [],
+  )
 
   const handleMarkAsRead = useCallback(
     (footnoteId: string) => {
@@ -242,7 +277,7 @@ export default function BookDetailPage() {
           : `显示全部 ${filteredFootnotes.length} 条`}
         {query.trim() ? ` · 关键字「${query.trim()}」` : ''}
         {selectedTags.size > 0
-          ? ` · 标签「${Array.from(selectedTags).join('、')}」`
+          ? ` · 标签「${Array.from(selectedTags).join('、')}」（满足任一）`
           : ''}
         {sortOrder === 'asc' ? ' · 按页码升序' : ' · 按页码降序'}
       </p>
@@ -254,6 +289,9 @@ export default function BookDetailPage() {
         readFootnoteIds={readFootnoteIds}
         onToggleBookmark={handleToggleBookmark}
         onTagClick={handleTagClick}
+        onAddTag={handleAddTag}
+        onRemoveTag={handleRemoveTag}
+        isTagRemovable={handleIsTagRemovable}
       />
     </div>
   )

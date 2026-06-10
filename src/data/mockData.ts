@@ -441,8 +441,69 @@ export function getBookById(id: string): Book | undefined {
   return books.find((b) => b.id === id)
 }
 
+const USER_TAGS_STORAGE_KEY = 'footnote-archive-user-tags'
+
+function readUserTags(): Record<string, string[]> {
+  try {
+    const raw = localStorage.getItem(USER_TAGS_STORAGE_KEY)
+    if (!raw) return {}
+    const parsed = JSON.parse(raw)
+    return parsed && typeof parsed === 'object' ? parsed : {}
+  } catch {
+    return {}
+  }
+}
+
+function writeUserTags(userTags: Record<string, string[]>): void {
+  localStorage.setItem(USER_TAGS_STORAGE_KEY, JSON.stringify(userTags))
+}
+
+function mergeFootnoteTags(fn: Footnote): Footnote {
+  const userTags = readUserTags()
+  const customTags = userTags[fn.id] ?? []
+  const merged = Array.from(new Set([...fn.tags, ...customTags]))
+  return { ...fn, tags: merged }
+}
+
 export function getFootnotesByBookId(bookId: string): Footnote[] {
-  return footnotes.filter((f) => f.bookId === bookId)
+  return footnotes.filter((f) => f.bookId === bookId).map(mergeFootnoteTags)
+}
+
+export function getUserTagsForFootnote(footnoteId: string): string[] {
+  const userTags = readUserTags()
+  return userTags[footnoteId] ?? []
+}
+
+export function addUserTag(footnoteId: string, tag: string): string[] {
+  const trimmedTag = tag.trim()
+  if (!trimmedTag) return []
+
+  const userTags = readUserTags()
+  const existing = userTags[footnoteId] ?? []
+  if (existing.includes(trimmedTag)) return existing
+
+  const updated = [...existing, trimmedTag]
+  userTags[footnoteId] = updated
+  writeUserTags(userTags)
+  return updated
+}
+
+export function removeUserTag(footnoteId: string, tag: string): string[] {
+  const userTags = readUserTags()
+  const existing = userTags[footnoteId] ?? []
+  const updated = existing.filter((t) => t !== tag)
+  if (updated.length === 0) {
+    delete userTags[footnoteId]
+  } else {
+    userTags[footnoteId] = updated
+  }
+  writeUserTags(userTags)
+  return updated
+}
+
+export function isDefaultTag(footnoteId: string, tag: string): boolean {
+  const footnote = footnotes.find((f) => f.id === footnoteId)
+  return footnote?.tags.includes(tag) ?? false
 }
 
 const BOOKMARKS_STORAGE_KEY = 'footnote-archive-bookmarks'
@@ -512,13 +573,14 @@ export function getBookmarkedFootnotes(): { footnote: Footnote; book: Book; book
       const footnote = footnotes.find((f) => f.id === bm.footnoteId)
       const book = books.find((b) => b.id === bm.bookId)
       if (!footnote || !book) return null
-      return { footnote, book, bookmark: bm }
+      return { footnote: mergeFootnoteTags(footnote), book, bookmark: bm }
     })
     .filter((item): item is { footnote: Footnote; book: Book; bookmark: Bookmark } => item !== null)
 }
 
 export function getFootnoteById(id: string): Footnote | undefined {
-  return footnotes.find((f) => f.id === id)
+  const fn = footnotes.find((f) => f.id === id)
+  return fn ? mergeFootnoteTags(fn) : undefined
 }
 
 export function updateBookmark(
