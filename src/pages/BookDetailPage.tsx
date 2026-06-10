@@ -162,6 +162,10 @@ export default function BookDetailPage() {
     [],
   )
 
+  const handleClearAdvancedConditions = useCallback(() => {
+    setAdvConditions(DEFAULT_CONDITIONS)
+  }, [])
+
   const refreshBookmarks = useCallback(() => {
     setBookmarkedIds(readBookmarkedIds())
     setGroups(getBookmarkGroups())
@@ -330,6 +334,7 @@ export default function BookDetailPage() {
           value={query}
           onChange={setQuery}
           onAdvancedSearch={() => setAdvSearchOpen(true)}
+          onClearAdvanced={handleClearAdvancedConditions}
           advancedConditions={advConditions}
         />
         <div className="toolbar__actions">

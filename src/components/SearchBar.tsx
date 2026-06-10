@@ -7,6 +7,7 @@ interface SearchBarProps {
   placeholder?: string
   label?: string
   onAdvancedSearch?: () => void
+  onClearAdvanced?: () => void
   advancedConditions?: AdvancedSearchConditions
 }
 
@@ -25,6 +26,7 @@ export default function SearchBar({
   placeholder = '搜索编号、页码、原文或注释…',
   label = '全文检索',
   onAdvancedSearch,
+  onClearAdvanced,
   advancedConditions = DEFAULT_CONDITIONS,
 }: SearchBarProps) {
   const activeCount = countActiveConditions(advancedConditions)
@@ -102,6 +104,16 @@ export default function SearchBar({
           )}
           {advancedConditions.favoriteStatus === 'not-favorited' && (
             <span className="search-bar__condition-tag">仅未收藏</span>
+          )}
+          {onClearAdvanced && (
+            <button
+              type="button"
+              className="search-bar__clear-advanced"
+              onClick={onClearAdvanced}
+              aria-label="清除高级筛选"
+            >
+              清除高级筛选
+            </button>
           )}
         </div>
       )}

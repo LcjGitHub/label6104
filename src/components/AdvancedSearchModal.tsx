@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { AdvancedSearchConditions, SearchPreset } from '../types'
 
 const PRESETS_STORAGE_KEY = 'footnote-archive-search-presets'
@@ -67,6 +67,12 @@ export default function AdvancedSearchModal({
     return () => document.removeEventListener('keydown', handleKey)
   }, [open, onClose])
 
+  const pageRangeInvalid = useMemo(() => {
+    const { min, max } = local.pageRange
+    if (min === null || max === null) return false
+    return min > max
+  }, [local.pageRange])
+
   const updateLocal = useCallback(
     <K extends keyof AdvancedSearchConditions>(
       key: K,
@@ -78,13 +84,15 @@ export default function AdvancedSearchModal({
   )
 
   const handleApply = useCallback(() => {
+    if (pageRangeInvalid) return
     onApply(local)
     onClose()
-  }, [local, onApply, onClose])
+  }, [local, onApply, onClose, pageRangeInvalid])
 
   const handleReset = useCallback(() => {
-    setLocal(DEFAULT_CONDITIONS)
-  }, [])
+    onApply(DEFAULT_CONDITIONS)
+    onClose()
+  }, [onApply, onClose])
 
   const handleSavePreset = useCallback(() => {
     const name = presetName.trim()
@@ -105,8 +113,10 @@ export default function AdvancedSearchModal({
   const handleLoadPreset = useCallback(
     (preset: SearchPreset) => {
       setLocal({ ...preset.conditions })
+      onApply(preset.conditions)
+      onClose()
     },
-    [],
+    [onApply, onClose],
   )
 
   const handleDeletePreset = useCallback(
@@ -164,6 +174,8 @@ export default function AdvancedSearchModal({
     local.readStatus !== 'all' ||
     local.favoriteStatus !== 'all'
 
+  const canApply = hasConditions && !pageRangeInvalid
+
   return (
     <div
       className="adv-search-overlay"
@@ -197,7 +209,7 @@ export default function AdvancedSearchModal({
                 <input
                   id="adv-page-min"
                   type="number"
-                  className="adv-search-input adv-search-input--number"
+                  className={`adv-search-input adv-search-input--number ${pageRangeInvalid ? 'adv-search-input--error' : ''}`}
                   placeholder="最小"
                   min={1}
                   value={local.pageRange.min ?? ''}
@@ -207,6 +219,7 @@ export default function AdvancedSearchModal({
                       min: e.target.value === '' ? null : Number(e.target.value),
                     })
                   }
+                  aria-invalid={pageRangeInvalid}
                 />
               </div>
               <span className="adv-search-range-sep">—</span>
@@ -217,7 +230,7 @@ export default function AdvancedSearchModal({
                 <input
                   id="adv-page-max"
                   type="number"
-                  className="adv-search-input adv-search-input--number"
+                  className={`adv-search-input adv-search-input--number ${pageRangeInvalid ? 'adv-search-input--error' : ''}`}
                   placeholder="最大"
                   min={1}
                   value={local.pageRange.max ?? ''}
@@ -227,9 +240,15 @@ export default function AdvancedSearchModal({
                       max: e.target.value === '' ? null : Number(e.target.value),
                     })
                   }
+                  aria-invalid={pageRangeInvalid}
                 />
               </div>
             </div>
+            {pageRangeInvalid && (
+              <p className="adv-search-error" role="alert">
+                起始页不能大于结束页
+              </p>
+            )}
           </section>
 
           <section className="adv-search-section">
@@ -382,6 +401,7 @@ export default function AdvancedSearchModal({
           {presets.length > 0 && (
             <section className="adv-search-section">
               <h3 className="adv-search-section-title">已保存的预设方案</h3>
+              <p className="adv-search-hint">点击方案将自动应用并关闭弹窗</p>
               <div className="adv-search-presets">
                 {presets.map((preset) => (
                   <div key={preset.id} className="adv-search-preset-item">
@@ -461,7 +481,7 @@ export default function AdvancedSearchModal({
               type="button"
               className="adv-search-btn adv-search-btn--apply"
               onClick={handleApply}
-              disabled={!hasConditions}
+              disabled={!canApply}
             >
               应用筛选
             </button>
