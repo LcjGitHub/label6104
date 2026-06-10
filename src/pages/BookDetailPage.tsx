@@ -1,8 +1,13 @@
-import { useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import FootnoteList from '../components/FootnoteList'
 import SearchBar from '../components/SearchBar'
-import { getBookById, getFootnotesByBookId } from '../data/mockData'
+import {
+  getBookById,
+  getFootnotesByBookId,
+  getBookmarks,
+  toggleBookmark,
+} from '../data/mockData'
 
 type SortOrder = 'asc' | 'desc'
 
@@ -13,6 +18,25 @@ export default function BookDetailPage() {
 
   const [query, setQuery] = useState('')
   const [sortOrder, setSortOrder] = useState<SortOrder>('asc')
+  const [bookmarkedIds, setBookmarkedIds] = useState<Set<string>>(new Set())
+
+  const loadBookmarks = useCallback(() => {
+    const bookmarks = getBookmarks()
+    setBookmarkedIds(new Set(bookmarks.map((b) => b.footnoteId)))
+  }, [])
+
+  useEffect(() => {
+    loadBookmarks()
+  }, [loadBookmarks])
+
+  const handleToggleBookmark = useCallback(
+    (footnoteId: string) => {
+      if (!bookId) return
+      toggleBookmark(footnoteId, bookId)
+      loadBookmarks()
+    },
+    [bookId, loadBookmarks],
+  )
 
   const filteredFootnotes = useMemo(() => {
     const normalized = query.trim().toLowerCase()
@@ -87,7 +111,12 @@ export default function BookDetailPage() {
         {sortOrder === 'asc' ? ' · 按页码升序' : ' · 按页码降序'}
       </p>
 
-      <FootnoteList footnotes={filteredFootnotes} noteType={book.noteType} />
+      <FootnoteList
+        footnotes={filteredFootnotes}
+        noteType={book.noteType}
+        bookmarkedIds={bookmarkedIds}
+        onToggleBookmark={handleToggleBookmark}
+      />
     </div>
   )
 }

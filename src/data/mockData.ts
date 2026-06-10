@@ -1,4 +1,4 @@
-import type { Book, Footnote } from '../types'
+import type { Book, Bookmark, Footnote } from '../types'
 
 export const books: Book[] = [
   {
@@ -405,4 +405,80 @@ export function getBookById(id: string): Book | undefined {
 
 export function getFootnotesByBookId(bookId: string): Footnote[] {
   return footnotes.filter((f) => f.bookId === bookId)
+}
+
+const BOOKMARKS_STORAGE_KEY = 'footnote-archive-bookmarks'
+
+function readBookmarks(): Bookmark[] {
+  try {
+    const raw = localStorage.getItem(BOOKMARKS_STORAGE_KEY)
+    if (!raw) return []
+    const parsed = JSON.parse(raw)
+    return Array.isArray(parsed) ? parsed : []
+  } catch {
+    return []
+  }
+}
+
+function writeBookmarks(bookmarks: Bookmark[]): void {
+  localStorage.setItem(BOOKMARKS_STORAGE_KEY, JSON.stringify(bookmarks))
+}
+
+export function getBookmarks(): Bookmark[] {
+  return readBookmarks()
+}
+
+export function getBookmarkByFootnoteId(footnoteId: string): Bookmark | undefined {
+  return readBookmarks().find((b) => b.footnoteId === footnoteId)
+}
+
+export function isBookmarked(footnoteId: string): boolean {
+  return readBookmarks().some((b) => b.footnoteId === footnoteId)
+}
+
+export function addBookmark(footnoteId: string, bookId: string): Bookmark {
+  const bookmarks = readBookmarks()
+  const existing = bookmarks.find((b) => b.footnoteId === footnoteId)
+  if (existing) return existing
+
+  const bookmark: Bookmark = {
+    id: `bm-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    footnoteId,
+    bookId,
+    createdAt: Date.now(),
+  }
+  bookmarks.push(bookmark)
+  writeBookmarks(bookmarks)
+  return bookmark
+}
+
+export function removeBookmark(footnoteId: string): void {
+  const bookmarks = readBookmarks()
+  const filtered = bookmarks.filter((b) => b.footnoteId !== footnoteId)
+  writeBookmarks(filtered)
+}
+
+export function toggleBookmark(footnoteId: string, bookId: string): { bookmarked: boolean } {
+  if (isBookmarked(footnoteId)) {
+    removeBookmark(footnoteId)
+    return { bookmarked: false }
+  }
+  addBookmark(footnoteId, bookId)
+  return { bookmarked: true }
+}
+
+export function getBookmarkedFootnotes(): { footnote: Footnote; book: Book; bookmark: Bookmark }[] {
+  const bookmarks = readBookmarks().sort((a, b) => b.createdAt - a.createdAt)
+  return bookmarks
+    .map((bm) => {
+      const footnote = footnotes.find((f) => f.id === bm.footnoteId)
+      const book = books.find((b) => b.id === bm.bookId)
+      if (!footnote || !book) return null
+      return { footnote, book, bookmark: bm }
+    })
+    .filter((item): item is { footnote: Footnote; book: Book; bookmark: Bookmark } => item !== null)
+}
+
+export function getFootnoteById(id: string): Footnote | undefined {
+  return footnotes.find((f) => f.id === id)
 }

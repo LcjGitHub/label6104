@@ -17,3 +17,10 @@ export interface Footnote {
   originalText: string
   annotation: string
 }
+
+export interface Bookmark {
+  id: string
+  footnoteId: string
+  bookId: string
+  createdAt: number
+}

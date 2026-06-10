@@ -1,13 +1,20 @@
 interface SearchBarProps {
   value: string
   onChange: (value: string) => void
+  placeholder?: string
+  label?: string
 }
 
-export default function SearchBar({ value, onChange }: SearchBarProps) {
+export default function SearchBar({
+  value,
+  onChange,
+  placeholder = '搜索编号、页码、原文或注释…',
+  label = '全文检索',
+}: SearchBarProps) {
   return (
     <div className="search-bar">
       <label htmlFor="footnote-search" className="search-bar__label">
-        全文检索
+        {label}
       </label>
       <div className="search-bar__field">
         <span className="search-bar__icon" aria-hidden="true">
@@ -17,7 +24,7 @@ export default function SearchBar({ value, onChange }: SearchBarProps) {
           id="footnote-search"
           type="search"
           className="search-bar__input"
-          placeholder="搜索编号、页码、原文或注释…"
+          placeholder={placeholder}
           value={value}
           onChange={(e) => onChange(e.target.value)}
         />

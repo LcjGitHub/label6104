@@ -1,4 +1,4 @@
-import { Outlet, Link } from 'react-router-dom'
+import { Outlet, Link, NavLink } from 'react-router-dom'
 
 export default function Layout() {
   return (
@@ -12,6 +12,25 @@ export default function Layout() {
               <span className="site-logo__subtitle">Footnote &amp; Endnote Archive</span>
             </div>
           </Link>
+          <nav className="site-nav">
+            <NavLink
+              to="/"
+              end
+              className={({ isActive }) =>
+                `site-nav__link ${isActive ? 'site-nav__link--active' : ''}`
+              }
+            >
+              书目典藏
+            </NavLink>
+            <NavLink
+              to="/bookmarks"
+              className={({ isActive }) =>
+                `site-nav__link ${isActive ? 'site-nav__link--active' : ''}`
+              }
+            >
+              我的收藏
+            </NavLink>
+          </nav>
         </div>
       </header>
       <main className="site-main">
