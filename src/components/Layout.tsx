@@ -1,6 +1,9 @@
 import { Outlet, Link, NavLink } from 'react-router-dom'
+import { useTheme } from '../context/ThemeContext'
 
 export default function Layout() {
+  const { theme, toggleTheme } = useTheme()
+
   return (
     <div className="app">
       <header className="site-header">
@@ -38,6 +41,10 @@ export default function Layout() {
             >
               我的收藏
             </NavLink>
+            <button className="theme-toggle" onClick={toggleTheme} aria-label="切换主题">
+              <span className="theme-toggle__icon">{theme === 'light' ? '☾' : '☀'}</span>
+              <span>{theme === 'light' ? '夜间' : '日间'}</span>
+            </button>
           </nav>
         </div>
       </header>
