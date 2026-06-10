@@ -26,7 +26,8 @@ export default function ProgressOverview() {
   })
 
   const refreshData = useCallback(() => {
-    setSummaries(getAllProgressSummaries())
+    const all = getAllProgressSummaries()
+    setSummaries(all.filter((s) => s.readCount > 0))
     setStats(getOverallStats())
   }, [])
 

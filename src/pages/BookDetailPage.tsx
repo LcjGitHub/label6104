@@ -37,6 +37,15 @@ export default function BookDetailPage() {
   const observerRef = useRef<IntersectionObserver | null>(null)
   const processedRef = useRef<Set<string>>(new Set())
 
+  useEffect(() => {
+    if (!bookId) return
+    setReadFootnoteIds(getReadFootnoteIds(bookId))
+    setProgressPercentage(calculateProgressPercentage(bookId))
+    setQuery('')
+    setSortOrder('asc')
+    processedRef.current = new Set()
+  }, [bookId])
+
   const filteredFootnotes = useMemo(() => {
     const normalized = query.trim().toLowerCase()
     let result = allFootnotes
@@ -104,8 +113,8 @@ export default function BookDetailPage() {
       },
       {
         root: null,
-        rootMargin: '-40% 0px -40% 0px',
-        threshold: 0.3,
+        rootMargin: '-10% 0px -10% 0px',
+        threshold: 0.1,
       },
     )
 
