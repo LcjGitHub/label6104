@@ -938,7 +938,7 @@ export function formatAnnotationsAsCSV(book: Book, footnotes: Footnote[]): strin
     String(fn.page),
     fn.originalText,
     fn.annotation,
-    fn.tags.join('、'),
+    fn.tags.map((t) => getTagDisplayName(t)).join('、'),
   ])
 
   const csvLines = [

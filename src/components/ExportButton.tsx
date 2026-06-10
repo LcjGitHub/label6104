@@ -62,7 +62,7 @@ export default function ExportButton({
       mimeType = 'application/json'
     } else if (format === 'csv') {
       content = formatAnnotationsAsCSV(book, exportFootnotes)
-      filename = `${sanitizedTitle}_${timestamp}_CSV.csv`
+      filename = `${sanitizedTitle}_${timestamp}_表格格式.csv`
       mimeType = 'text/csv;charset=utf-8'
     } else {
       content = formatAnnotationsAsText(book, exportFootnotes)
@@ -103,7 +103,7 @@ export default function ExportButton({
               className="export-control__select"
             >
               <option value="text">纯文本</option>
-              <option value="csv">CSV 表格</option>
+              <option value="csv">逗号分隔表格</option>
               <option value="json">结构化数据</option>
             </select>
             <button
