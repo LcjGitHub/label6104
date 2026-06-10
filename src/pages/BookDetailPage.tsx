@@ -3,6 +3,7 @@ import { Link, useParams } from 'react-router-dom'
 import FootnoteList from '../components/FootnoteList'
 import ProgressBar from '../components/ProgressBar'
 import SearchBar from '../components/SearchBar'
+import AdvancedSearchModal, { DEFAULT_CONDITIONS } from '../components/AdvancedSearchModal'
 import TagFilter from '../components/TagFilter'
 import TagCloud from '../components/TagCloud'
 import ExportButton from '../components/ExportButton'
@@ -20,7 +21,7 @@ import {
   getBookmarkGroups,
   setBookmarkGroup,
 } from '../data/mockData'
-import type { BookmarkGroup } from '../types'
+import type { AdvancedSearchConditions, BookmarkGroup } from '../types'
 
 type SortOrder = 'asc' | 'desc'
 
@@ -49,6 +50,8 @@ export default function BookDetailPage() {
   )
   const [groups, setGroups] = useState<BookmarkGroup[]>(() => getBookmarkGroups())
   const [bookmarkRefreshKey, setBookmarkRefreshKey] = useState(0)
+  const [advSearchOpen, setAdvSearchOpen] = useState(false)
+  const [advConditions, setAdvConditions] = useState<AdvancedSearchConditions>(DEFAULT_CONDITIONS)
 
   const observerRef = useRef<IntersectionObserver | null>(null)
   const processedRef = useRef<Set<string>>(new Set())
@@ -61,6 +64,7 @@ export default function BookDetailPage() {
     setSortOrder('asc')
     setSelectedTags(new Set())
     setTagRefreshKey((k) => k + 1)
+    setAdvConditions(DEFAULT_CONDITIONS)
     processedRef.current = new Set()
   }, [bookId])
 
@@ -104,10 +108,59 @@ export default function BookDetailPage() {
       )
     }
 
+    if (advConditions.pageRange.min !== null) {
+      result = result.filter((fn) => fn.page >= advConditions.pageRange.min!)
+    }
+    if (advConditions.pageRange.max !== null) {
+      result = result.filter((fn) => fn.page <= advConditions.pageRange.max!)
+    }
+
+    if (advConditions.tags.length > 0) {
+      if (advConditions.tagMatchMode === 'all') {
+        result = result.filter((fn) =>
+          advConditions.tags.every((tag) => fn.tags.includes(tag)),
+        )
+      } else {
+        result = result.filter((fn) =>
+          advConditions.tags.some((tag) => fn.tags.includes(tag)),
+        )
+      }
+    }
+
+    if (advConditions.readStatus !== 'all') {
+      if (advConditions.readStatus === 'read') {
+        result = result.filter((fn) => readFootnoteIds.has(fn.id))
+      } else {
+        result = result.filter((fn) => !readFootnoteIds.has(fn.id))
+      }
+    }
+
+    if (advConditions.favoriteStatus !== 'all') {
+      if (advConditions.favoriteStatus === 'favorited') {
+        result = result.filter((fn) => bookmarkedIds.has(fn.id))
+      } else {
+        result = result.filter((fn) => !bookmarkedIds.has(fn.id))
+      }
+    }
+
     return [...result].sort((a, b) =>
       sortOrder === 'asc' ? a.page - b.page : b.page - a.page,
     )
-  }, [allFootnotes, query, sortOrder, selectedTags])
+  }, [allFootnotes, query, sortOrder, selectedTags, advConditions, readFootnoteIds, bookmarkedIds])
+
+  const hasAdvancedConditions =
+    advConditions.pageRange.min !== null ||
+    advConditions.pageRange.max !== null ||
+    advConditions.tags.length > 0 ||
+    advConditions.readStatus !== 'all' ||
+    advConditions.favoriteStatus !== 'all'
+
+  const handleApplyAdvancedConditions = useCallback(
+    (conditions: AdvancedSearchConditions) => {
+      setAdvConditions(conditions)
+    },
+    [],
+  )
 
   const refreshBookmarks = useCallback(() => {
     setBookmarkedIds(readBookmarkedIds())
@@ -273,7 +326,12 @@ export default function BookDetailPage() {
       />
 
       <div className="toolbar">
-        <SearchBar value={query} onChange={setQuery} />
+        <SearchBar
+          value={query}
+          onChange={setQuery}
+          onAdvancedSearch={() => setAdvSearchOpen(true)}
+          advancedConditions={advConditions}
+        />
         <div className="toolbar__actions">
           <label className="sort-control">
             <span>页码排序</span>
@@ -291,7 +349,7 @@ export default function BookDetailPage() {
               book={book}
               filteredFootnotes={filteredFootnotes}
               allFootnotes={allFootnotes}
-              isFilterActive={!!query.trim() || selectedTags.size > 0}
+              isFilterActive={!!query.trim() || selectedTags.size > 0 || hasAdvancedConditions}
             />
           )}
         </div>
@@ -305,13 +363,22 @@ export default function BookDetailPage() {
       />
 
       <p className="result-summary" aria-live="polite">
-        {query.trim() || selectedTags.size > 0
+        {query.trim() || selectedTags.size > 0 || hasAdvancedConditions
           ? `找到 ${filteredFootnotes.length} 条匹配`
           : `显示全部 ${filteredFootnotes.length} 条`}
         {query.trim() ? ` · 关键字「${query.trim()}」` : ''}
         {selectedTags.size > 0
           ? ` · 标签「${Array.from(selectedTags).join('、')}」（满足任一）`
           : ''}
+        {advConditions.pageRange.min !== null ? ` · 页码 ≥ ${advConditions.pageRange.min}` : ''}
+        {advConditions.pageRange.max !== null ? ` · 页码 ≤ ${advConditions.pageRange.max}` : ''}
+        {advConditions.tags.length > 0
+          ? ` · 高级标签「${advConditions.tags.join('、')}」${advConditions.tagMatchMode === 'all' ? '（同时满足）' : '（满足任一）'}`
+          : ''}
+        {advConditions.readStatus === 'read' ? ' · 仅已读' : ''}
+        {advConditions.readStatus === 'unread' ? ' · 仅未读' : ''}
+        {advConditions.favoriteStatus === 'favorited' ? ' · 仅已收藏' : ''}
+        {advConditions.favoriteStatus === 'not-favorited' ? ' · 仅未收藏' : ''}
         {sortOrder === 'asc' ? ' · 按页码升序' : ' · 按页码降序'}
       </p>
 
@@ -329,6 +396,14 @@ export default function BookDetailPage() {
         bookmarkGroups={groups}
         footnoteGroupMap={footnoteGroupMap}
         onChangeGroup={handleChangeGroup}
+      />
+
+      <AdvancedSearchModal
+        open={advSearchOpen}
+        onClose={() => setAdvSearchOpen(false)}
+        onApply={handleApplyAdvancedConditions}
+        conditions={advConditions}
+        allTags={allTags}
       />
     </div>
   )

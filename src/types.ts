@@ -49,6 +49,21 @@ export interface ReadingProgress {
   startedAt: number
 }
 
+export interface AdvancedSearchConditions {
+  pageRange: { min: number | null; max: number | null }
+  tags: string[]
+  tagMatchMode: 'any' | 'all'
+  readStatus: 'all' | 'read' | 'unread'
+  favoriteStatus: 'all' | 'favorited' | 'not-favorited'
+}
+
+export interface SearchPreset {
+  id: string
+  name: string
+  conditions: AdvancedSearchConditions
+  createdAt: number
+}
+
 export interface BookProgressSummary {
   bookId: string
   title: string
